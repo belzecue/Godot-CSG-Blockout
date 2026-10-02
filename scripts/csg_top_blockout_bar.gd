@@ -12,6 +12,7 @@ const MORE_CHECK_JUMP: int = 1
 const MORE_EXPORT_LEGEND: int = 2
 const MORE_REPEATER_REFRESH: int = 3
 const MORE_REPEATER_BAKE: int = 4
+const MORE_EXPORT_MESHLIB: int = 5
 
 var _rulers_visible: bool = true
 var _grid_option: OptionButton
@@ -196,6 +197,8 @@ func _rebuild_more_menu() -> void:
 	popup.add_submenu_node_item(CsgBlockoutI18n.t("TAG_MENU"), _tag_menu)
 	popup.add_item(CsgBlockoutI18n.t("EXPORT_LEGEND"), MORE_EXPORT_LEGEND)
 	popup.add_separator()
+	popup.add_item(CsgBlockoutI18n.t("EXPORT_MESHLIB"), MORE_EXPORT_MESHLIB)
+	popup.add_separator()
 	popup.add_item("%s (Repeater/Spreader)" % CsgBlockoutI18n.t("REFRESH"), MORE_REPEATER_REFRESH)
 	popup.add_item("%s (Repeater/Spreader)" % CsgBlockoutI18n.t("BAKE"), MORE_REPEATER_BAKE)
 
@@ -210,6 +213,9 @@ func _update_more_menu_state() -> void:
 	var check_idx: int = popup.get_item_index(MORE_CHECK_JUMP)
 	if check_idx >= 0:
 		popup.set_item_disabled(check_idx, CsgBlockoutSelection.top_level_nodes().size() != 2)
+	var meshlib_idx: int = popup.get_item_index(MORE_EXPORT_MESHLIB)
+	if meshlib_idx >= 0:
+		popup.set_item_disabled(meshlib_idx, CsgBlockoutMeshLibraryExport.selection_nodes().is_empty())
 
 func _on_tag_id_pressed(id: int) -> void:
 	var tag: StringName = CsgBlockoutTags.TAGS[id] if id < CsgBlockoutTags.TAGS.size() else &""
@@ -238,6 +244,8 @@ func _on_more_id_pressed(id: int) -> void:
 			CsgBlockoutMeasureOverlay.check_jump_between_selection()
 		MORE_EXPORT_LEGEND:
 			CsgBlockoutTags.export_legend_with_dialog()
+		MORE_EXPORT_MESHLIB:
+			CsgBlockoutMeshLibraryExport.export_selection_with_dialog()
 		MORE_REPEATER_REFRESH:
 			_on_refresh_pressed()
 		MORE_REPEATER_BAKE:

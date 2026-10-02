@@ -50,9 +50,12 @@ static func normalized(options: Dictionary) -> Dictionary:
 ## or {} when the CSG has no geometry.
 static func build(root: CSGShape3D, options: Dictionary) -> Dictionary:
 	var opts: Dictionary = normalized(options)
-	var mesh: ArrayMesh = root.bake_static_mesh()
-	if mesh == null or mesh.get_surface_count() == 0:
+	var live: ArrayMesh = root.bake_static_mesh()
+	if live == null or live.get_surface_count() == 0:
 		return {}
+	# bake_static_mesh() hands out the CSG's own render mesh; work on a copy so the
+	# unwrap below never touches it and the result doesn't alias a live node.
+	var mesh: ArrayMesh = live.duplicate() as ArrayMesh
 	var warnings: PackedStringArray = []
 	if bool(opts["uv2"]):
 		var err: Error = mesh.lightmap_unwrap(Transform3D.IDENTITY, maxf(float(opts["texel"]), 0.01))

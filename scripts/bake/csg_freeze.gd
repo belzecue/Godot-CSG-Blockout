@@ -57,7 +57,7 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 		if root == scene_root:
 			_toast(CsgBlockoutI18n.t("WARN_FREEZE_SCENE_ROOT"), EditorToaster.SEVERITY_WARNING)
 			continue
-		var options: Dictionary = _options_for(root)
+		var options: Dictionary = options_for(root)
 		var baked: Dictionary = CsgBlockoutBakePipeline.build(root, options)
 		if baked.is_empty():
 			_toast(CsgBlockoutI18n.tf("WARN_FREEZE_EMPTY", [root.name]), EditorToaster.SEVERITY_WARNING)
@@ -86,7 +86,7 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 
 ## Bake options for a CSG root: the ones it was frozen with before (kept on the
 ## shell), otherwise the project defaults.
-static func _options_for(root: CSGShape3D) -> Dictionary:
+static func options_for(root: CSGShape3D) -> Dictionary:
 	if root.has_meta(META_SHELL) and root.get_meta(META_SHELL) is PackedScene:
 		var shell: Node = (root.get_meta(META_SHELL) as PackedScene).instantiate()
 		var opts: Variant = shell.get_meta(META_BAKE, {}) if shell != null else {}

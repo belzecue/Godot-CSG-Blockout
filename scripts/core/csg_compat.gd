@@ -6,6 +6,7 @@ extends RefCounted
 ##   EditorDock / add_dock ............ 4.6+ (add_control_to_dock before that)
 ##   EditorSettings.add_shortcut ...... 4.6+ (see CsgBlockoutShortcuts fallback)
 ##   TriangleMesh.intersect_ray ....... 4.5+
+##   FileDialog.overwrite_warning_enabled  4.7+ (EditorFileDialog.disable_overwrite_warning before)
 
 static func has_editor_dock() -> bool:
 	return ClassDB.class_exists(&"EditorDock")
@@ -25,6 +26,13 @@ static func add_dock(plugin: EditorPlugin, content: Control, title: String, icon
 	content.name = title
 	plugin.call(&"add_control_to_dock", EditorPlugin.DOCK_SLOT_LEFT_UR, content)
 	return content
+
+## For save dialogs that merge into an existing file instead of overwriting it.
+static func disable_overwrite_warning(dialog: Object) -> void:
+	if &"overwrite_warning_enabled" in dialog:
+		dialog.set(&"overwrite_warning_enabled", false)
+	else:
+		dialog.set(&"disable_overwrite_warning", true)
 
 static func remove_dock(plugin: EditorPlugin, handle: Control) -> void:
 	if handle == null or not is_instance_valid(handle):

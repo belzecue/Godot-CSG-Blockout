@@ -134,4 +134,41 @@ const STRINGS: Dictionary = {
 		"zh": "在视口中标出问题边", "en": "Show problem edges in the viewport", "ja": "問題の辺をビューポートに表示", "ko": "문제 모서리를 뷰포트에 표시",
 		"es": "Mostrar aristas problemáticas en el viewport", "pt": "Mostrar arestas com problema na viewport", "ru": "Показать проблемные рёбра во вьюпорте",
 	},
+	"EXPORT_MESHLIB": {
+		"zh": "导出到 MeshLibrary…", "en": "Export to MeshLibrary…", "ja": "MeshLibrary に書き出し…", "ko": "MeshLibrary로 내보내기…",
+		"es": "Exportar a MeshLibrary…", "pt": "Exportar para MeshLibrary…", "ru": "Экспорт в MeshLibrary…",
+	},
+	"MESHLIB_DIALOG_TITLE": {
+		"zh": "导出 %d 个条目到 MeshLibrary（选已有的库会按名字更新条目，其余条目保留）",
+		"en": "Export %d items to a MeshLibrary (picking an existing library updates items by name and keeps the rest)",
+		"ja": "%d 個のアイテムを MeshLibrary に書き出し（既存のライブラリを選ぶと同名のアイテムを更新し、他は残す）",
+		"ko": "%d개 항목을 MeshLibrary로 내보내기 (기존 라이브러리를 고르면 같은 이름의 항목만 갱신하고 나머지는 유지)",
+		"es": "Exportar %d elementos a una MeshLibrary (si eliges una existente, se actualizan los elementos con el mismo nombre y se conservan los demás)",
+		"pt": "Exportar %d itens para uma MeshLibrary (escolher uma existente atualiza os itens de mesmo nome e mantém o resto)",
+		"ru": "Экспорт %d элементов в MeshLibrary (при выборе существующей библиотеки элементы с тем же именем обновляются, остальные сохраняются)",
+	},
+	"MESHLIB_EXPORTED": {
+		"zh": "MeshLibrary：新增 %d 个条目、更新 %d 个 → %s", "en": "MeshLibrary: %d items added, %d updated → %s",
+		"ja": "MeshLibrary：%d 個追加、%d 個更新 → %s", "ko": "MeshLibrary: %d개 추가, %d개 갱신 → %s",
+		"es": "MeshLibrary: %d elementos añadidos, %d actualizados → %s", "pt": "MeshLibrary: %d itens adicionados, %d atualizados → %s",
+		"ru": "MeshLibrary: добавлено %d, обновлено %d → %s",
+	},
+	"WARN_MESHLIB_NOTHING": {
+		"zh": "先选中 CSG、冻结的白盒，或装着它们的父节点", "en": "Select CSG, frozen blockouts, or a node that contains them first",
+		"ja": "先に CSG、フリーズ済みブロックアウト、またはそれらを含むノードを選択してください", "ko": "먼저 CSG, 고정된 블록아웃 또는 이를 담은 노드를 선택하세요",
+		"es": "Selecciona primero CSG, blockouts congelados o un nodo que los contenga", "pt": "Selecione primeiro CSG, blockouts congelados ou um nó que os contenha",
+		"ru": "Сначала выберите CSG, замороженные блокауты или узел, который их содержит",
+	},
+	"WARN_MESHLIB_NOT_LIBRARY": {
+		"zh": "%s 不是 MeshLibrary，未写入", "en": "%s is not a MeshLibrary; nothing was written",
+		"ja": "%s は MeshLibrary ではないため書き込みませんでした", "ko": "%s은(는) MeshLibrary가 아니어서 쓰지 않았습니다",
+		"es": "%s no es una MeshLibrary; no se escribió nada", "pt": "%s não é uma MeshLibrary; nada foi gravado",
+		"ru": "%s не является MeshLibrary; ничего не записано",
+	},
+	"WARN_MESHLIB_DUPLICATE": {
+		"zh": "有多个节点叫 %s，只导出了第一个；条目按名字匹配，请先改名", "en": "Several nodes are named %s; only the first was exported. Items match by name, so rename them first",
+		"ja": "%s という名前のノードが複数あるため最初の 1 つだけ書き出しました。アイテムは名前で照合されるので先に名前を変えてください", "ko": "%s 이름의 노드가 여러 개라 첫 번째만 내보냈습니다. 항목은 이름으로 맞추므로 먼저 이름을 바꾸세요",
+		"es": "Hay varios nodos llamados %s; solo se exportó el primero. Los elementos se emparejan por nombre: renómbralos antes", "pt": "Há vários nós chamados %s; só o primeiro foi exportado. Os itens são associados pelo nome, então renomeie-os antes",
+		"ru": "Несколько узлов называются %s; экспортирован только первый. Элементы сопоставляются по имени — сначала переименуйте их",
+	},
 }
