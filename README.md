@@ -19,9 +19,26 @@
   </p>
 
   <p>
-    <strong>A high-performance, modernized 3D level blockout and rapid prototyping plugin designed specifically for Godot 4.7.</strong>
+    <strong>Level prototyping, not modeling.</strong><br />
+    Block out levels in Godot 4.7 with native CSG nodes: nothing proprietary, always editable, and nothing to migrate away from.
   </p>
+
+  <!-- HERO DEMO: 15-second clip, empty scene → a room with a doorway. Put it here once recorded, e.g.
+  <img src="DocsImages/Hero.webp" alt="From an empty scene to a room with a doorway in 15 seconds" width="800" /> -->
 </div>
+
+---
+
+## Why CSG?
+
+Brush-based level editors keep their geometry in their own data format. CSG_Blockout doesn't: everything you build is a regular Godot CSG node in your scene tree, edited non-destructively. Move a wall, resize a doorway, or delete a cut at any time; nothing gets collapsed into a mesh behind your back.
+
+That also means you can walk away from the plugin at any time:
+
+- **Primitives** created from the pie menu or sidebar are stock `CSGBox3D`, `CSGCylinder3D`, etc. Disabling or removing the plugin doesn't touch them.
+- **Stairs** (`CSGStairs3D`) fall back to a plain `CSGPolygon3D` with the same shape.
+- **Repeater / Spreader** instances are live previews. Click **Bake** first and they become ordinary scene nodes.
+- **Grid materials** live in the plugin folder. Disabling the plugin keeps them; deleting the folder doesn't.
 
 ---
 
@@ -49,62 +66,91 @@ In Godot, go to **Project -> Project Settings -> Plugins**, find **CSG_Blockout*
 
 ## Quick Start
 
-1. **Invoke 3D Pie Menu**: Press `Shift + A` in the 3D viewport to open the vector radial menu directly at your cursor. Quickly create primitives or switch CSG operations (Union / Intersection / Subtraction) using mouse gestures.
-2. **Use the Viewport Sidebar**: The left sidebar provides one-click creation for 6 standard shapes. It automatically adds nodes as children when selecting a `CSGCombiner3D`, or as adjacent siblings when selecting standard shapes.
-3. **Procedural World-Aligned Grid**: Switch between Light Grid, Dark Grid, or Orange Accent presets. Select multiple CSG nodes in the tree or viewport and click **"Apply Material to Selected"** to batch-assign without texture distortion.
-4. **Bake to Permanent Nodes**: When a `CSGRepeater3D` or `CSGSpreader3D` is selected, click **Bake** in the 3D header toolbar to detach generated instances into permanent scene nodes.
+1. **Create from the cursor**: Press `Shift + A` in the 3D viewport to open the pie menu at your cursor, then flick toward a shape or a boolean mode (Union / Intersection / Subtraction).
+2. **Or click the sidebar**: The left viewport sidebar creates shapes, stairs, and rulers in one click. Select a `CSGCombiner3D` and new shapes go inside it; select a shape and they land right next to it.
+3. **Cut a doorway**: Switch the mode to Subtraction and drop a box into a wall.
+4. **Make scale readable**: Pick a grid material (1 m squares that never stretch), select your shapes, and click **"Apply Material to Selected"**.
+5. **Check it against your character**: Add a ruler between two ledges to see whether the gap is jumpable with your character's settings.
 
-> For a complete visual walkthrough and performance optimization workflow, check the [Quick Start & Advanced Workflow Tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md).
-
----
-
-## Key Features
-
-- **Vector 3D Pie Menu**: Triggered with `Shift + A` in the 3D viewport. Hierarchical radial navigation for instant CSG operations and primitive placement with central deadzone controls and full Undo/Redo integration.
-- **Smart Viewport Sidebar**: Quick-access toolbar for 6 primitive shapes and boolean modes. Auto-hides when no CSG nodes are selected to keep the viewport clean.
-- **Procedural World-Aligned Triplanar Shader**: World-space UV projection guarantees consistent 1m x 1m grid scaling without stretching during node transformations or CSG boolean cuts. Built-in screen-derivative anti-aliasing.
-- **Ready-to-Use Material Presets & Batch Assignment**: Pre-configured measurement materials (Light, Dark, Accent, Unshaded) with one-click batch application to all selected CSG nodes.
-- **Parametric Array Generator (CSGRepeater3D)**: Strategy-pattern array distributions (Grid, Circular, Spiral, and 3D Noise volume sampling) with randomized rotation and scale.
-- **Volume Collision Scatterer (CSGSpreader3D)**: Scatter instances within any Godot `Shape3D` volume without overlaps. Powered by a custom $\mathcal{O}(1)$ 3D Spatial Hash Grid algorithm.
-- **GDScript 2.0 Static Typing & Multi-Language Support**: Fully typed codebase, atomic `EditorUndoRedoManager` support (`Ctrl + Z` / `Ctrl + Y`), and built-in 7-language (i18n) localization (English, Simplified Chinese, Japanese, Korean, Spanish, Portuguese, Russian).
+> For a complete visual walkthrough and the performance workflow, see the [Quick Start & Advanced Workflow Tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md).
 
 ---
 
-## Relationship to CSG Toolkit & Architectural Evolution
+## Features
 
-This plugin originated from the excellent open-source [CSG Toolkit](https://godotengine.org/asset-library/asset/3057) created by **LuckyTepot**. While the original toolkit demonstrated the value of in-viewport CSG authoring, modern Godot 4.7 workflows demanded higher performance, procedural tooling, and cleaner architecture.
+### Blockout
+- **Pie menu at your cursor** (`Shift + A`): create shapes and switch boolean modes without leaving the viewport. Holding the right mouse button to fly the camera never triggers it.
+- **Viewport sidebar**: one click per shape, stairs, or ruler. New nodes go where you'd put them by hand, inside the selected combiner or next to the selected shape. The sidebar hides itself when no CSG node is selected.
+- **Stairs and ramps** (`CSGStairs3D`): set total height, depth, width, and step count; flip to a smooth ramp to test movement. Warns you when steps fall outside a comfortable rise/run.
+- **Every action is undoable**: creating, switching modes, assigning materials, and baking Repeater/Spreader instances all go through `Ctrl + Z` / `Ctrl + Y`.
 
-`CSG_Blockout` was re-engineered by [qwqzhanqwq](https://github.com/qwqzhanqwq) as a **ground-up architectural overhaul**:
+### Scale & metrics
+- **Grid materials that never stretch**: world-aligned 1 m grid in light, dark, and orange accent variants, plus an untextured mode and your own material. Batch-apply to any selection.
+- **Level ruler** (`CSGRuler3D`): drag two endpoints to read distance, horizontal span, and height difference. It tells you whether a gap is reachable using your character height, jump height, and sprint-jump distance, set once in Project Settings or overridden per ruler. Toggle all rulers from the top toolbar.
 
-| Dimension | Original CSG Toolkit | CSG_Blockout (This Project) |
+### Procedural extras
+- **Repeater** (`CSGRepeater3D`): lay out copies in grid, circle, spiral, or noise patterns, with random rotation, scale, and jitter.
+- **Spreader** (`CSGSpreader3D`): scatter up to 200 copies inside any `Shape3D` without overlaps; the preview refreshes live while you tweak settings.
+- Click **Bake** in the top toolbar to turn the preview copies into regular scene nodes.
+
+### Everything else
+- Interface in 7 languages: English, Simplified Chinese, Japanese, Korean, Spanish, Portuguese, and Russian. Follows the editor language or can be overridden.
+
+Algorithms, design patterns, and the full property reference are in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Roadmap
+
+The direction is **draw → run → fix**, without leaving the node tree. Next up: drag-to-create in the viewport, a unified grid & snapping system, and cut/door/window tools. After that: reversible bake (freeze a CSG tree into a mesh and unfreeze it back into editable CSG), level-design metrics in the viewport, and "Play From Here" with a test character.
+
+Release notes are in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+
+---
+
+## Relationship to CSG Toolkit
+
+This plugin originated from the open-source [CSG Toolkit](https://godotengine.org/asset-library/asset/3057) by **LuckyTepot**, which proved the value of in-viewport CSG authoring. `CSG_Blockout` is a ground-up rewrite by [qwqzhanqwq](https://github.com/qwqzhanqwq) for Godot 4.7:
+
+| | Original CSG Toolkit | CSG_Blockout |
 | :--- | :--- | :--- |
-| **Engine Core** | Early Godot 4.x, dynamically typed | **Tailored for Godot 4.7+**, full GDScript 2.0 static typing & ClassDB validation |
-| **Interaction** | Viewport sidebar only | **3D Viewport Radial Pie Menu (`Shift + A`) + Smart Sidebar** dual workflow |
-| **Procedural Tools**| Static manual primitive placement | **Parametric Repeaters (`CSGRepeater3D`) + Volume Spreaders (`CSGSpreader3D`)** |
-| **Scatter Algorithm**| No collision avoidance or naive $\mathcal{O}(N^2)$ | **Custom 3D Spatial Hash Grid ($\mathcal{O}(1)$ lookup)**, real-time calculation |
-| **Materials** | Basic default materials | **World-aligned triplanar anti-aliased shader** + 5 presets + 1-click batch assign |
-| **Robustness** | Basic editor state | **Atomic `EditorUndoRedoManager` integration** with strict editor/runtime decoupling |
-| **Localization** | English only | **Native multi-language support** (English, Simplified Chinese, Japanese, Korean, Spanish, Portuguese, Russian) |
+| **Engine** | Early Godot 4.x | Godot 4.7+, fully statically typed GDScript |
+| **Creating shapes** | Viewport sidebar | Pie menu at the cursor + sidebar |
+| **Level design aids** | — | Parametric stairs/ramps, level ruler with jump reachability |
+| **Materials** | Default materials | World-aligned grid materials, batch apply |
+| **Procedural layout** | — | Repeater and overlap-free Spreader, bakeable to regular nodes |
+| **Undo** | Basic | Every plugin action is undoable |
+| **Languages** | English | 7 languages |
 
 ---
 
 ## Documentation
 
 ### English
-- [Main Documentation (README.md)](README.md): Plugin overview, installation, feature highlights, and credits.
-- [Quick Start & Advanced Workflow Tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md): Step-by-step guide, visual demonstrations, and the critical CSG-to-Mesh baking workflow.
-- [Architecture Design & Technical Internals (ARCHITECTURE.md)](ARCHITECTURE.md): Spatial Hash Grid algorithm derivation, design patterns, and complete API specifications.
+- [Main Documentation (README.md)](README.md): Overview, installation, and features.
+- [Quick Start & Advanced Workflow Tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md): Step-by-step guide, demos, and the CSG-to-mesh baking workflow.
+- [Architecture & Technical Internals (ARCHITECTURE.md)](ARCHITECTURE.md): Spatial hash algorithm, design patterns, and API reference.
+- [Changelog (CHANGELOG.md)](CHANGELOG.md): What changed in each release.
+- [Contributing Guide (CONTRIBUTING.md)](CONTRIBUTING.md): How to report bugs and submit pull requests.
 
 ### 简体中文 (Simplified Chinese)
-- [中文主说明文档 (README_CN.md)](README_CN.md): 插件核心特性、安装指南、快速上手与演进历史。
-- [快速上手与高级工作流教程 (TUTORIAL_CN.md)](TUTORIAL_CN.md): 完整图文与动图教学、白盒烘焙与性能优化方案。
-- [架构设计与技术内幕 (ARCHITECTURE_CN.md)](ARCHITECTURE_CN.md): 3D 空间哈希数学推导、策略模式架构解析与全量 API 字典。
+- [中文主说明文档 (README_CN.md)](README_CN.md)：定位、安装与功能。
+- [快速上手与高级工作流教程 (TUTORIAL_CN.md)](TUTORIAL_CN.md)：图文教程与白盒烘焙方案。
+- [架构设计与技术内幕 (ARCHITECTURE_CN.md)](ARCHITECTURE_CN.md)：空间哈希推导、架构解析与 API 字典。
+- [贡献指南 (CONTRIBUTING_CN.md)](CONTRIBUTING_CN.md)：如何反馈问题与提交 PR。
 
 ---
 
 ## Credits & License
 
 - **Original Concept & Layout Design**: [LuckyTepot](https://github.com/LuckyTepot) (CSG Toolkit, Copyright (c) 2023).
-- **Architecture Overhaul, 3D Pie Menu, Spatial Hash Grid, Array/Scatter Systems & GDScript 2.0 Rewrite**: [qwqzhanqwq](https://github.com/qwqzhanqwq) (Copyright (c) 2026).
+- **Architecture Overhaul, 3D Pie Menu, Spatial Hash Grid, Array/Scatter Systems, Stairs & Ruler, GDScript 2.0 Rewrite**: [qwqzhanqwq](https://github.com/qwqzhanqwq) (Copyright (c) 2026).
+- **Contributors**: [SuzukaDev](https://github.com/SuzukaDev) (pie menu fly-navigation fix).
 
 Licensed under the [MIT License](LICENSE).
