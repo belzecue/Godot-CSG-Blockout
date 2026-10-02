@@ -7,6 +7,7 @@ var sidebar: CSGSideBlockoutBar
 var topbar: CSGTopBlockoutBar
 var ruler_gizmo_plugin: CSGRulerGizmoPlugin
 var tools: CsgBlockoutToolManager
+var _draw_tool: CsgBlockoutDrawTool
 
 static var csg_plugin_path: String
 static var undo_manager: EditorUndoRedoManager
@@ -79,6 +80,9 @@ func _enter_tree() -> void:
 	CsgBlockoutShortcuts.register_all()
 	tools = CsgBlockoutToolManager.new(self)
 	tools.add_passive(CsgBlockoutTransformHotkeys.new())
+	_draw_tool = CsgBlockoutDrawTool.new()
+	tools.active_tool_changed.connect(topbar.set_active_tool)
+	topbar.action_requested.connect(_on_action_requested)
 	set_input_event_forwarding_always_enabled()
 	set_force_draw_over_forwarding_enabled()
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
@@ -204,6 +208,23 @@ func _on_pie_menu_action_triggered(item: Dictionary) -> void:
 
 func _on_create_requested(csg_type: String) -> void:
 	CsgBlockoutNodeFactory.create(csg_type)
+
+## Tool buttons and menu entries (top bar, pie menu) land here.
+func _on_action_requested(action_id: StringName) -> void:
+	match action_id:
+		&"draw_box":
+			_toggle_draw(CsgBlockoutDrawTool.Mode.BOX)
+		&"draw_room":
+			_toggle_draw(CsgBlockoutDrawTool.Mode.ROOM)
+
+func _toggle_draw(mode: CsgBlockoutDrawTool.Mode) -> void:
+	if tools.active == _draw_tool:
+		var same: bool = _draw_tool.mode == mode
+		tools.deactivate()
+		if same:
+			return
+	_draw_tool.mode = mode
+	tools.activate(_draw_tool)
 
 func _exit_tree() -> void:
 	if tools != null:

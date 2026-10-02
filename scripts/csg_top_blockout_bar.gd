@@ -13,6 +13,7 @@ var _rulers_visible: bool = true
 var _grid_option: OptionButton
 var _snap_button: Button
 var _more_button: MenuButton
+var _tool_buttons: Array[Button] = []
 
 func _enter_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -83,6 +84,10 @@ func _build_blockout_tools() -> void:
 	_snap_button.toggled.connect(_on_snap_toggled)
 	box.add_child(_snap_button)
 
+	box.add_child(VSeparator.new())
+	_add_tool_button(box, &"draw_box", &"CSGBox3D", "DRAW_BOX_TOOLTIP")
+	_add_tool_button(box, &"draw_room", &"CSGCombiner3D", "DRAW_ROOM_TOOLTIP")
+
 	_more_button = MenuButton.new()
 	_more_button.name = "MoreActions"
 	_more_button.flat = true
@@ -94,6 +99,27 @@ func _build_blockout_tools() -> void:
 
 	var sep: VSeparator = VSeparator.new()
 	box.add_child(sep)
+
+## Icon toggle that asks the plugin to (de)activate viewport tool `tool_id`.
+func _add_tool_button(parent: Control, tool_id: StringName, icon_name: StringName, tooltip_key: String) -> Button:
+	var btn: Button = Button.new()
+	btn.name = "Tool_" + String(tool_id)
+	btn.flat = true
+	btn.toggle_mode = true
+	btn.icon = editor_icon(icon_name)
+	if btn.icon == null:
+		btn.text = String(tool_id)
+	btn.set_meta("i18n_tooltip_key", tooltip_key)
+	btn.set_meta("tool_id", tool_id)
+	btn.toggled.connect(func(_on: bool) -> void: action_requested.emit(tool_id))
+	parent.add_child(btn)
+	_tool_buttons.append(btn)
+	return btn
+
+## Reflects the active viewport tool on the toggle buttons.
+func set_active_tool(tool_id: StringName) -> void:
+	for btn: Button in _tool_buttons:
+		btn.set_pressed_no_signal(btn.get_meta("tool_id") == tool_id)
 
 ## Built-in editor icon by name, or null outside the editor.
 static func editor_icon(icon_name: StringName) -> Texture2D:

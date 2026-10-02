@@ -19,6 +19,12 @@ const SETTING_CUSTOM_MATERIAL_PATH: String = "addons/csg_blockout/custom_materia
 const SETTING_CHARACTER_HEIGHT: String = "addons/csg_blockout/player_metrics/character_height"
 const SETTING_SINGLE_JUMP_HEIGHT: String = "addons/csg_blockout/player_metrics/single_jump_height"
 const SETTING_SPRINT_JUMP_DISTANCE: String = "addons/csg_blockout/player_metrics/sprint_jump_distance"
+const SETTING_ROOM_WALL_THICKNESS: String = "addons/csg_blockout/room/wall_thickness"
+const SETTING_ROOM_FLOOR_THICKNESS: String = "addons/csg_blockout/room/floor_thickness"
+const SETTING_ROOM_OPEN_TOP: String = "addons/csg_blockout/room/open_top"
+const DEFAULT_ROOM_WALL_THICKNESS: float = 0.25
+const DEFAULT_ROOM_FLOOR_THICKNESS: float = 0.25
+const DEFAULT_ROOM_OPEN_TOP: bool = true
 
 # Default values
 const DEFAULT_ACTION_KEY: Key = KEY_SHIFT
@@ -200,8 +206,37 @@ func _ensure_settings_exist() -> void:
 		"hint_string": "0.1,20.0,0.05,or_greater"
 	})
 
+	_register(SETTING_ROOM_WALL_THICKNESS, DEFAULT_ROOM_WALL_THICKNESS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,5.0,0.01,or_greater")
+	_register(SETTING_ROOM_FLOOR_THICKNESS, DEFAULT_ROOM_FLOOR_THICKNESS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,5.0,0.01,or_greater")
+	_register(SETTING_ROOM_OPEN_TOP, DEFAULT_ROOM_OPEN_TOP, TYPE_BOOL)
+
 	if not ProjectSettings.settings_changed.is_connected(_on_project_settings_changed):
 		ProjectSettings.settings_changed.connect(_on_project_settings_changed)
+
+## Registers a project setting with its default and editor hint (no-op if present).
+func _register(path: String, default_value: Variant, type: int, hint: int = PROPERTY_HINT_NONE, hint_string: String = "") -> void:
+	if not ProjectSettings.has_setting(path):
+		ProjectSettings.set_setting(path, default_value)
+	ProjectSettings.set_initial_value(path, default_value)
+	ProjectSettings.add_property_info({"name": path, "type": type, "hint": hint, "hint_string": hint_string})
+
+## Positive float setting with NaN/Inf protection.
+func get_positive_float(path: String, default_value: float) -> float:
+	var v: Variant = _get_setting(path, default_value)
+	if v is float or v is int:
+		var f: float = float(v)
+		if not is_nan(f) and not is_inf(f) and f > 0.0:
+			return f
+	return default_value
+
+func get_room_wall_thickness() -> float:
+	return get_positive_float(SETTING_ROOM_WALL_THICKNESS, DEFAULT_ROOM_WALL_THICKNESS)
+
+func get_room_floor_thickness() -> float:
+	return get_positive_float(SETTING_ROOM_FLOOR_THICKNESS, DEFAULT_ROOM_FLOOR_THICKNESS)
+
+func get_room_open_top() -> bool:
+	return bool(_get_setting(SETTING_ROOM_OPEN_TOP, DEFAULT_ROOM_OPEN_TOP))
 
 func get_preset_material(preset: MaterialPreset) -> Material:
 	var file_name := ""

@@ -92,6 +92,43 @@ static func resolve_parent(node: Node3D) -> Dictionary:
 		return {"parent": first.get_parent(), "index": first.get_index() + 1, "anchor": first}
 	return {"parent": first, "index": -1, "anchor": first}
 
+## Where a shape drawn on `hit` should go: {"parent", "index", "wrap"}.
+## - A selected combiner always receives it.
+## - Otherwise it joins the combiner that owns the surface it was drawn on, so a
+##   subtraction cuts that geometry. A lone root primitive is returned as "wrap":
+##   the caller puts it under a new combiner first (subtraction needs a parent).
+## - Drawn in empty space: under the scene root.
+## New shapes are appended so subtractions apply to everything before them.
+static func parent_for_hit(hit: CsgBlockoutRaycast.Hit, op: CSGShape3D.Operation) -> Dictionary:
+	var root: Node = CsgBlockoutSceneOps.edited_root()
+	for n: Node in EditorInterface.get_selection().get_selected_nodes():
+		if n is CSGCombiner3D and n != root:
+			return {"parent": n, "index": -1, "wrap": null}
+	if hit != null and hit.is_valid() and hit.collider is CSGShape3D:
+		var surface: CSGShape3D = hit.solid_shape if hit.solid_shape != null else hit.shape
+		if surface == null:
+			surface = hit.collider as CSGShape3D
+		var p: Node = surface.get_parent()
+		if surface is CSGCombiner3D:
+			return {"parent": surface, "index": -1, "wrap": null}
+		if p is CSGShape3D:
+			return {"parent": p, "index": -1, "wrap": null}
+		if op == CSGShape3D.OPERATION_SUBTRACTION and surface != root:
+			return {"parent": p, "index": -1, "wrap": surface}
+		return {"parent": p if p != null else root, "index": surface.get_index() + 1 if p != null else -1, "wrap": null}
+	return {"parent": root, "index": -1, "wrap": null}
+
+## Queues "wrap `lone` into a new combiner" on `action` and returns the combiner.
+static func wrap_in_combiner(action: CsgBlockoutSceneOps.Action, lone: Node3D) -> CSGCombiner3D:
+	var combiner: CSGCombiner3D = CSGCombiner3D.new()
+	if lone is CSGShape3D:
+		combiner.use_collision = (lone as CSGShape3D).use_collision
+	var parent: Node = lone.get_parent()
+	combiner.name = CsgBlockoutSceneOps.unique_child_name(parent, String(lone.name) + "_Group")
+	action.add_node(parent, combiner, lone.get_index(), Transform3D(Basis.IDENTITY, lone.global_position), "self")
+	action.reparent(lone, combiner)
+	return combiner
+
 ## Basis whose +Y follows `normal`; floors keep the world orientation.
 static func basis_from_normal(normal: Vector3) -> Basis:
 	var y: Vector3 = normal.normalized()
