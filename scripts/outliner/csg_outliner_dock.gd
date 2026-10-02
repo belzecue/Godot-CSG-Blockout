@@ -166,6 +166,10 @@ func _add_item(n: Node, parent_item: TreeItem, counts: Dictionary) -> void:
 	item.set_text(Col.NAME, String(n.name))
 	item.set_metadata(Col.NAME, n.get_instance_id())
 	item.set_icon(Col.NAME, _node_icon(n))
+	var tag: StringName = CsgBlockoutTags.tag_of(n)
+	if CsgBlockoutTags.COLORS.has(tag):
+		item.set_icon_modulate(Col.NAME, CsgBlockoutTags.COLORS[tag])
+		item.set_tooltip_text(Col.NAME, "%s · %s" % [String(n.name), CsgBlockoutTags.label(tag)])
 	item.set_icon_max_width(Col.NAME, int(16 * EditorInterface.get_editor_scale()))
 	if n is CSGShape3D:
 		match (n as CSGShape3D).operation:

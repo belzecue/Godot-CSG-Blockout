@@ -9,6 +9,7 @@ signal action_requested(action_id: StringName)
 const BASE_ICON_MAX_WIDTH: int = 16
 const MORE_SNAP_TO_GRID: int = 0
 const MORE_CHECK_JUMP: int = 1
+const MORE_EXPORT_LEGEND: int = 2
 
 var _rulers_visible: bool = true
 var _grid_option: OptionButton
@@ -18,6 +19,7 @@ var _tool_buttons: Array[Button] = []
 var _freeze_button: Button
 var _dimensions_button: Button
 var _unfreeze_button: Button
+var _tag_menu: PopupMenu
 
 func _enter_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -180,6 +182,29 @@ func _rebuild_more_menu() -> void:
 	popup.clear()
 	popup.add_item(CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), MORE_SNAP_TO_GRID)
 	popup.add_item(CsgBlockoutI18n.t("CHECK_JUMP_MENU"), MORE_CHECK_JUMP)
+	popup.add_separator()
+	if _tag_menu == null:
+		_tag_menu = PopupMenu.new()
+		_tag_menu.name = "TagMenu"
+		_tag_menu.id_pressed.connect(_on_tag_id_pressed)
+	_tag_menu.clear()
+	for i: int in CsgBlockoutTags.TAGS.size():
+		var tag: StringName = CsgBlockoutTags.TAGS[i]
+		var swatch: GradientTexture2D = GradientTexture2D.new()
+		swatch.width = 12
+		swatch.height = 12
+		swatch.gradient = Gradient.new()
+		swatch.gradient.set_color(0, CsgBlockoutTags.COLORS[tag])
+		swatch.gradient.set_color(1, CsgBlockoutTags.COLORS[tag])
+		_tag_menu.add_icon_item(swatch, CsgBlockoutTags.label(tag), i)
+	_tag_menu.add_separator()
+	_tag_menu.add_item(CsgBlockoutI18n.t("TAG_CLEAR"), CsgBlockoutTags.TAGS.size())
+	popup.add_submenu_node_item(CsgBlockoutI18n.t("TAG_MENU"), _tag_menu)
+	popup.add_item(CsgBlockoutI18n.t("EXPORT_LEGEND"), MORE_EXPORT_LEGEND)
+
+func _on_tag_id_pressed(id: int) -> void:
+	var tag: StringName = CsgBlockoutTags.TAGS[id] if id < CsgBlockoutTags.TAGS.size() else &""
+	CsgBlockoutTags.apply_to_selection(tag)
 
 func _sync_grid_controls() -> void:
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
@@ -202,6 +227,8 @@ func _on_more_id_pressed(id: int) -> void:
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
 		MORE_CHECK_JUMP:
 			CsgBlockoutMeasureOverlay.check_jump_between_selection()
+		MORE_EXPORT_LEGEND:
+			CsgBlockoutTags.export_legend_with_dialog()
 
 func _apply_editor_scale() -> void:
 	var ed_scale: float = 1.0

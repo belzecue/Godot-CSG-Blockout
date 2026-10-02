@@ -86,4 +86,44 @@ const STRINGS: Dictionary = {
 		"es": "Comprueba el nivel con las métricas del jugador: pendientes demasiado inclinadas, techos demasiado bajos", "pt": "Verifica o nível com as métricas do jogador: rampas íngremes demais, tetos baixos demais",
 		"ru": "Проверить уровень по параметрам игрока: слишком крутые уклоны, слишком низкие потолки",
 	},
+	"TAG_MENU": {
+		"zh": "标记为", "en": "Tag As", "ja": "タグ付け", "ko": "태그 지정",
+		"es": "Etiquetar como", "pt": "Marcar como", "ru": "Пометить как",
+	},
+	"TAG_WALL": {
+		"zh": "墙", "en": "Wall", "ja": "壁", "ko": "벽",
+		"es": "Muro", "pt": "Parede", "ru": "Стена",
+	},
+	"TAG_FLOOR": {
+		"zh": "地面", "en": "Floor", "ja": "床", "ko": "바닥",
+		"es": "Suelo", "pt": "Piso", "ru": "Пол",
+	},
+	"TAG_HAZARD": {
+		"zh": "危险区", "en": "Hazard", "ja": "危険エリア", "ko": "위험 구역",
+		"es": "Peligro", "pt": "Perigo", "ru": "Опасная зона",
+	},
+	"TAG_INTERACTIVE": {
+		"zh": "可交互", "en": "Interactive", "ja": "インタラクト可能", "ko": "상호작용 가능",
+		"es": "Interactivo", "pt": "Interativo", "ru": "Интерактивное",
+	},
+	"TAG_CLEAR": {
+		"zh": "清除标记", "en": "Clear Tag", "ja": "タグを外す", "ko": "태그 지우기",
+		"es": "Quitar etiqueta", "pt": "Remover marcação", "ru": "Снять пометку",
+	},
+	"TAG_ACTION": {
+		"zh": "语义标记", "en": "Tag Surfaces", "ja": "サーフェスにタグ付け", "ko": "표면 태그 지정",
+		"es": "Etiquetar superficies", "pt": "Marcar superfícies", "ru": "Пометить поверхности",
+	},
+	"EXPORT_LEGEND": {
+		"zh": "导出图例 (SVG)…", "en": "Export Legend (SVG)…", "ja": "凡例を書き出す (SVG)…", "ko": "범례 내보내기 (SVG)…",
+		"es": "Exportar leyenda (SVG)…", "pt": "Exportar legenda (SVG)…", "ru": "Экспорт легенды (SVG)…",
+	},
+	"LEGEND_TITLE": {
+		"zh": "白盒图例", "en": "Blockout Legend", "ja": "ブロックアウト凡例", "ko": "블록아웃 범례",
+		"es": "Leyenda del blockout", "pt": "Legenda do blockout", "ru": "Легенда блокаута",
+	},
+	"LEGEND_SAVED": {
+		"zh": "图例已保存到 %s", "en": "Legend saved to %s", "ja": "凡例を %s に保存しました", "ko": "범례를 %s에 저장했습니다",
+		"es": "Leyenda guardada en %s", "pt": "Legenda salva em %s", "ru": "Легенда сохранена в %s",
+	},
 }
