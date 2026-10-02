@@ -49,8 +49,17 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 		return
 	# CSG meshes update one frame after edits.
 	await scene_root.get_tree().process_frame
+	freeze_now(roots)
+
+## freeze() without waiting for pending CSG updates: the roots' meshes must be current.
+static func freeze_now(roots: Array[CSGShape3D]) -> void:
+	var scene_root: Node = EditorInterface.get_edited_scene_root()
+	if scene_root == null or roots.is_empty():
+		return
 	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(CsgBlockoutI18n.t("FREEZE_ACTION"))
 	var frozen_nodes: Array[Node] = []
+	# Collected once: walking the scene per root made freezing many roots quadratic.
+	var references: Array[Array] = _scene_references(scene_root)
 	for root: CSGShape3D in roots:
 		if not is_instance_valid(root) or not root.is_inside_tree():
 			continue
@@ -64,7 +73,7 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 			continue
 		for w: String in baked["warnings"]:
 			_toast("%s: %s" % [root.name, w], EditorToaster.SEVERITY_WARNING)
-		_warn_external_references(root, scene_root)
+		_warn_external_references(root, scene_root, references)
 		var frozen: MeshInstance3D = _build_frozen(root, baked, options)
 		frozen.set_meta(META_SOURCE, _pack_source(root, scene_root))
 		# Swap under a temporary name, then take over the original name once the CSG
@@ -212,24 +221,48 @@ static func _extras(root: Node) -> Array[Node]:
 			out.append(child)
 	return out
 
-## Warns when nodes outside the tree point (NodePath properties) into it.
-static func _warn_external_references(root: Node, scene_root: Node) -> void:
-	var hits: PackedStringArray = []
+## Stored NodePath properties (and NodePath metadata) in the scene that resolve to a
+## node: [node, property, target]. Property lists are read once per class and script,
+## not per node: with hundreds of CSG nodes that is most of the cost.
+static func _scene_references(scene_root: Node) -> Array[Array]:
+	var refs: Array[Array] = []
+	var path_props: Dictionary = {}
 	var stack: Array[Node] = [scene_root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
-		if n == root:
-			continue
 		stack.append_array(n.get_children())
-		for prop: Dictionary in n.get_property_list():
-			if prop["type"] != TYPE_NODE_PATH or not (prop["usage"] & PROPERTY_USAGE_STORAGE):
+		var script: Script = n.get_script() as Script
+		var key: String = "%s:%d" % [n.get_class(), script.get_instance_id() if script != null else 0]
+		if not path_props.has(key):
+			var names: PackedStringArray = []
+			for prop: Dictionary in n.get_property_list():
+				var prop_name: String = prop["name"]
+				if prop["type"] == TYPE_NODE_PATH and (prop["usage"] & PROPERTY_USAGE_STORAGE) and not prop_name.begins_with("metadata/"):
+					names.append(prop_name)
+			path_props[key] = names
+		var candidates: Array = []
+		for prop_name: String in path_props[key]:
+			candidates.append([prop_name, n.get(prop_name)])
+		for meta: StringName in n.get_meta_list():
+			candidates.append(["metadata/" + meta, n.get_meta(meta)])
+		for c: Array in candidates:
+			if not c[1] is NodePath or (c[1] as NodePath).is_empty():
 				continue
-			var path: NodePath = n.get(prop["name"])
-			if path.is_empty():
-				continue
-			var target: Node = n.get_node_or_null(path)
-			if target != null and target != root and root.is_ancestor_of(target):
-				hits.append("%s.%s" % [scene_root.get_path_to(n), prop["name"]])
+			var target: Node = n.get_node_or_null(c[1] as NodePath)
+			if target != null:
+				refs.append([n, c[0], target])
+	return refs
+
+## Warns when nodes outside the tree point (NodePath properties) into it.
+static func _warn_external_references(root: Node, scene_root: Node, references: Array[Array]) -> void:
+	var hits: PackedStringArray = []
+	for ref: Array in references:
+		var n: Node = ref[0]
+		var target: Node = ref[2]
+		if n == root or root.is_ancestor_of(n):
+			continue
+		if target != root and root.is_ancestor_of(target):
+			hits.append("%s.%s" % [scene_root.get_path_to(n), ref[1]])
 	if not hits.is_empty():
 		_toast(CsgBlockoutI18n.tf("WARN_FREEZE_REFERENCES", [root.name, ", ".join(hits)]), EditorToaster.SEVERITY_WARNING)
 
