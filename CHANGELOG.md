@@ -45,6 +45,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Documentation
 - README rewritten around the plugin's purpose: level prototyping with native, non-destructive CSG nodes. Stairs and the level ruler are now listed; Repeater/Spreader moved to a "procedural extras" section.
 - Added a contributing guide (`CONTRIBUTING.md`, `CONTRIBUTING_CN.md`), issue templates, a pull request template, and this changelog.
+- Added `BENCHMARKS.md` / `BENCHMARKS_CN.md`: edit latency, freeze time and in-game startup and frame time for levels of 24–400 primitives, with a benchmark you can run yourself (`benchmarks/run_benchmarks.gd`; left out of Asset Library downloads).
 
 ## [2.1.0] - 2026-09-10
 
