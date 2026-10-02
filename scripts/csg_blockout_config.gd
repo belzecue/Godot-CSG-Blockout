@@ -32,6 +32,8 @@ const DEFAULT_WINDOW_SIZE: Vector2 = Vector2(1.2, 1.2)
 const DEFAULT_WINDOW_SILL: float = 0.9
 const DEFAULT_OPENING_FRAME: bool = false
 const DEFAULT_FRAME_WIDTH: float = 0.1
+const SETTING_STRIP_SOURCE_ON_EXPORT: String = "addons/csg_blockout/bake/strip_source_on_export"
+const DEFAULT_STRIP_SOURCE_ON_EXPORT: bool = true
 const DEFAULT_ROOM_WALL_THICKNESS: float = 0.25
 const DEFAULT_ROOM_FLOOR_THICKNESS: float = 0.25
 const DEFAULT_ROOM_OPEN_TOP: bool = true
@@ -224,6 +226,7 @@ func _ensure_settings_exist() -> void:
 	_register(SETTING_WINDOW_SILL, DEFAULT_WINDOW_SILL, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.0,5.0,0.05,or_greater")
 	_register(SETTING_OPENING_FRAME, DEFAULT_OPENING_FRAME, TYPE_BOOL)
 	_register(SETTING_FRAME_WIDTH, DEFAULT_FRAME_WIDTH, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,1.0,0.01,or_greater")
+	_register(SETTING_STRIP_SOURCE_ON_EXPORT, DEFAULT_STRIP_SOURCE_ON_EXPORT, TYPE_BOOL)
 
 	if not ProjectSettings.settings_changed.is_connected(_on_project_settings_changed):
 		ProjectSettings.settings_changed.connect(_on_project_settings_changed)
@@ -274,6 +277,9 @@ func get_opening_frame() -> bool:
 
 func set_opening_frame(value: bool) -> void:
 	_set_setting(SETTING_OPENING_FRAME, value)
+
+func get_strip_source_on_export() -> bool:
+	return bool(_get_setting(SETTING_STRIP_SOURCE_ON_EXPORT, DEFAULT_STRIP_SOURCE_ON_EXPORT))
 
 func get_frame_width() -> float:
 	return get_positive_float(SETTING_FRAME_WIDTH, DEFAULT_FRAME_WIDTH)

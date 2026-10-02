@@ -9,6 +9,7 @@ var ruler_gizmo_plugin: CSGRulerGizmoPlugin
 var tools: CsgBlockoutToolManager
 var _draw_tool: CsgBlockoutDrawTool
 var _opening_tool: CsgBlockoutOpeningTool
+var _export_plugin: CsgBlockoutExportPlugin
 
 static var csg_plugin_path: String
 static var undo_manager: EditorUndoRedoManager
@@ -72,6 +73,8 @@ func _get_pie_menu_items() -> Array[Dictionary]:
 
 func _get_more_menu() -> Array[Dictionary]:
 	return [
+		{"label": CsgBlockoutI18n.t("FREEZE"), "type": "action", "action_id": &"freeze"},
+		{"label": CsgBlockoutI18n.t("UNFREEZE"), "type": "action", "action_id": &"unfreeze"},
 		{"label": CsgBlockoutI18n.t("ARRAY_MENU_ITEM"), "type": "action", "action_id": &"array"},
 		{"label": CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), "type": "action", "action_id": &"snap_to_grid"},
 	]
@@ -101,6 +104,9 @@ func _enter_tree() -> void:
 	topbar = topbar_scene.instantiate() as CSGTopBlockoutBar
 	topbar.request_create_node.connect(_on_create_requested)
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, topbar)
+
+	_export_plugin = CsgBlockoutExportPlugin.new()
+	add_export_plugin(_export_plugin)
 
 	# Viewport tools: input is forwarded even with nothing selected, and the HUD is
 	# drawn over every 3D viewport.
@@ -257,6 +263,10 @@ func _on_action_requested(action_id: StringName) -> void:
 			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.WINDOW)
 		&"snap_to_grid":
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
+		&"freeze":
+			await CsgBlockoutFreeze.freeze_selection()
+		&"unfreeze":
+			CsgBlockoutFreeze.unfreeze_selection()
 		&"array":
 			var array_tool: CsgBlockoutTool = tools.get_tool(&"array")
 			if not CsgBlockoutSelection.top_level_nodes().is_empty():
@@ -283,6 +293,10 @@ func _exit_tree() -> void:
 	if selection.selection_changed.is_connected(_on_selection_changed):
 		selection.selection_changed.disconnect(_on_selection_changed)
 	CsgBlockoutRaycast.clear_cache()
+
+	if _export_plugin != null:
+		remove_export_plugin(_export_plugin)
+		_export_plugin = null
 
 	if ruler_gizmo_plugin != null:
 		remove_node_3d_gizmo_plugin(ruler_gizmo_plugin)

@@ -142,6 +142,9 @@ func _do_add(parent: Node, node: Node, index: int, xform: Variant, own_mode: Str
 	if index >= 0:
 		parent.move_child(node, mini(index, parent.get_child_count() - 1))
 	var root: Node = edited_root()
+	if root != null and node != root and _detached_owned.has(node.get_instance_id()):
+		# Re-added after an undo/redo detach: restore exactly the previous ownership.
+		own_mode = "keep"
 	if root != null and node != root:
 		match own_mode:
 			"subtree":
@@ -153,6 +156,12 @@ func _do_add(parent: Node, node: Node, index: int, xform: Variant, own_mode: Str
 					own_like(original, node, root)
 				else:
 					node.owner = root
+			"packed":
+				# Freshly instantiated from a PackedScene: nodes owned by the packed root
+				# become scene-owned; nodes of nested instanced scenes keep their owners.
+				var packed_root: Node = node
+				_own_packed(node, packed_root, root)
+				node.owner = root
 			"keep":
 				var owned: Array = _detached_owned.get(node.get_instance_id(), [])
 				for n: Variant in owned:
@@ -191,6 +200,12 @@ func _do_reparent(node: Node, new_parent: Node, index: int) -> void:
 		n.owner = root
 	if keep is Transform3D:
 		(node as Node3D).global_transform = keep
+
+func _own_packed(n: Node, packed_root: Node, scene_owner: Node) -> void:
+	for child: Node in n.get_children():
+		if child.owner == packed_root:
+			child.owner = scene_owner
+		_own_packed(child, packed_root, scene_owner)
 
 func _collect_owned(node: Node, root: Node, out: Array[Node]) -> void:
 	if node.owner == root:

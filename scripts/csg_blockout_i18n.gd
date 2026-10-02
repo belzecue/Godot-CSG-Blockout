@@ -6,6 +6,7 @@ extends RefCounted
 const EXTRA_TABLES: Array[GDScript] = [
 	preload("res://addons/csg_blockout/scripts/i18n/strings_core.gd"),
 	preload("res://addons/csg_blockout/scripts/i18n/strings_tools.gd"),
+	preload("res://addons/csg_blockout/scripts/i18n/strings_bake.gd"),
 ]
 
 static var _merged: Dictionary = {}

@@ -14,6 +14,8 @@ var _grid_option: OptionButton
 var _snap_button: Button
 var _more_button: MenuButton
 var _tool_buttons: Array[Button] = []
+var _freeze_button: Button
+var _unfreeze_button: Button
 
 func _enter_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -90,6 +92,10 @@ func _build_blockout_tools() -> void:
 	_add_tool_button(box, &"opening_door", load("res://addons/csg_blockout/res/icons/door.svg") as Texture2D, "OPENING_DOOR_TOOLTIP")
 	_add_tool_button(box, &"opening_window", load("res://addons/csg_blockout/res/icons/window.svg") as Texture2D, "OPENING_WINDOW_TOOLTIP")
 
+	box.add_child(VSeparator.new())
+	_freeze_button = _add_action_button(box, &"freeze", load("res://addons/csg_blockout/res/icons/freeze.svg") as Texture2D, "FREEZE", "FREEZE_TOOLTIP")
+	_unfreeze_button = _add_action_button(box, &"unfreeze", load("res://addons/csg_blockout/res/icons/unfreeze.svg") as Texture2D, "UNFREEZE", "UNFREEZE_TOOLTIP")
+
 	_more_button = MenuButton.new()
 	_more_button.name = "MoreActions"
 	_more_button.flat = true
@@ -116,6 +122,19 @@ func _add_tool_button(parent: Control, tool_id: StringName, icon: Texture2D, too
 	btn.toggled.connect(func(_on: bool) -> void: action_requested.emit(tool_id))
 	parent.add_child(btn)
 	_tool_buttons.append(btn)
+	return btn
+
+## Plain (non-toggle) button that asks the plugin to run action `action_id`.
+func _add_action_button(parent: Control, action_id: StringName, icon: Texture2D, text_key: String, tooltip_key: String) -> Button:
+	var btn: Button = Button.new()
+	btn.name = "Action_" + String(action_id)
+	btn.flat = true
+	btn.icon = icon
+	btn.text = text_key
+	btn.set_meta("i18n_text_key", text_key)
+	btn.set_meta("i18n_tooltip_key", tooltip_key)
+	btn.pressed.connect(func() -> void: action_requested.emit(action_id))
+	parent.add_child(btn)
 	return btn
 
 ## Reflects the active viewport tool on the toggle buttons.
@@ -194,6 +213,11 @@ func _on_selection_changed() -> void:
 	var repeater_tools: Control = find_child("RepeaterTools", true, false) as Control
 	if repeater_tools:
 		repeater_tools.visible = has_repeater
+	var targets: Dictionary = CsgBlockoutFreeze.selection_targets()
+	if _freeze_button != null:
+		_freeze_button.visible = not (targets["roots"] as Array).is_empty()
+	if _unfreeze_button != null:
+		_unfreeze_button.visible = not (targets["frozen"] as Array).is_empty()
 	var vsep: Control = find_child("VSeparator", true, false) as Control
 	if vsep:
 		vsep.visible = has_repeater
