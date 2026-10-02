@@ -113,6 +113,15 @@ const STRINGS: Dictionary = {
 		"es": "El árbol tiene restas/intersecciones que la colisión por primitiva ignoraría; se usó trimesh", "pt": "A árvore tem subtrações/interseções que a colisão por primitiva ignoraria; usada trimesh",
 		"ru": "В дереве есть вычитания/пересечения, которые коллизия по примитивам проигнорирует; использован тримеш",
 	},
+	"WARN_OCCLUSION_CULLING_OFF": {
+		"zh": "已生成遮挡体，但项目设置里没有开启遮挡剔除（渲染 > 遮挡剔除 > 使用遮挡剔除），开启前遮挡体不起作用",
+		"en": "Occluder generated, but occlusion culling is off in Project Settings (Rendering > Occlusion Culling > Use Occlusion Culling); it has no effect until you turn it on",
+		"ja": "オクルーダーを生成しましたが、プロジェクト設定でオクルージョンカリングが無効です（Rendering > Occlusion Culling > Use Occlusion Culling）。有効にするまで効果はありません",
+		"ko": "오클루더를 만들었지만 프로젝트 설정에서 오클루전 컬링이 꺼져 있습니다 (Rendering > Occlusion Culling > Use Occlusion Culling). 켜기 전에는 효과가 없습니다",
+		"es": "Se generó el oclusor, pero el occlusion culling está desactivado en la configuración del proyecto (Rendering > Occlusion Culling > Use Occlusion Culling); no tendrá efecto hasta activarlo",
+		"pt": "Oclusor gerado, mas o occlusion culling está desligado nas configurações do projeto (Rendering > Occlusion Culling > Use Occlusion Culling); não terá efeito até ligá-lo",
+		"ru": "Окклюдер создан, но в настройках проекта выключено отсечение перекрытых объектов (Rendering > Occlusion Culling > Use Occlusion Culling); пока его не включить, окклюдер не работает",
+	},
 	"MANIFOLD_OK": {
 		"zh": "✓ 网格是闭合流形，可以放心用于 CSG", "en": "✓ The mesh is a closed manifold, safe for CSG", "ja": "✓ メッシュは閉じた多様体で、CSG で安全に使えます", "ko": "✓ 메시가 닫힌 매니폴드라 CSG에 안전합니다",
 		"es": "✓ La malla es un manifold cerrado, segura para CSG", "pt": "✓ A malha é uma variedade fechada, segura para CSG", "ru": "✓ Меш — замкнутое многообразие, безопасен для CSG",

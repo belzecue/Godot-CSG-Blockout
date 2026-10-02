@@ -90,6 +90,9 @@ static func build(root: CSGShape3D, options: Dictionary) -> Dictionary:
 				generated.append(_body(root, shapes))
 	if bool(opts["occluder"]):
 		generated.append(_occluder(collision_source))
+		# Off by default; without it the occluder does nothing.
+		if not bool(ProjectSettings.get_setting("rendering/occlusion_culling/use_occlusion_culling", false)):
+			warnings.append(CsgBlockoutI18n.t("WARN_OCCLUSION_CULLING_OFF"))
 	return {"mesh": mesh, "generated": generated, "warnings": warnings}
 
 static func _has_cuts(root: CSGShape3D) -> bool:
