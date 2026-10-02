@@ -2,6 +2,21 @@
 class_name CsgBlockoutI18n
 extends RefCounted
 
+## Feature string tables merged on top of TABLE (each script defines `const STRINGS`).
+const EXTRA_TABLES: Array[GDScript] = [
+	preload("res://addons/csg_blockout/scripts/i18n/strings_core.gd"),
+]
+
+static var _merged: Dictionary = {}
+
+## TABLE plus every EXTRA_TABLES entry, built once.
+static func table() -> Dictionary:
+	if _merged.is_empty():
+		_merged = TABLE.duplicate()
+		for extra: GDScript in EXTRA_TABLES:
+			_merged.merge(extra.get(&"STRINGS"), true)
+	return _merged
+
 const TABLE: Dictionary = {
 	"CSG_BLOCKOUT_SETTINGS": {
 		"zh": "CSG Blockout 设置",
@@ -422,8 +437,9 @@ static func _ensure_reverse_map() -> void:
 	if _reverse_initialized:
 		return
 	_reverse_initialized = true
-	for key: String in TABLE:
-		var entry: Dictionary = TABLE[key]
+	var all: Dictionary = table()
+	for key: String in all:
+		var entry: Dictionary = all[key]
 		for lang: String in entry:
 			var text: String = entry[lang]
 			_reverse_map[text] = key
@@ -523,9 +539,10 @@ static func get_locale() -> String:
 static func t(key_or_text: String) -> String:
 	_ensure_reverse_map()
 	var canonical_key: String = _reverse_map.get(key_or_text, key_or_text)
-	if TABLE.has(canonical_key):
+	var all: Dictionary = table()
+	if all.has(canonical_key):
 		var lang: String = get_locale()
-		var entry: Dictionary = TABLE[canonical_key]
+		var entry: Dictionary = all[canonical_key]
 		if entry.has(lang):
 			return entry[lang]
 		if (lang == "zh" or lang == "zh_CN") and entry.has("zh_CN"):

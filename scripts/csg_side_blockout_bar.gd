@@ -249,29 +249,26 @@ func _on_btn_toggled(pressed: bool, btn: Button) -> void:
 	_animate_button(btn, scale, mod, 0.2)
 
 func _on_box_pressed() -> void:
-	create_csg(CSGBox3D)
+	request_create_node.emit("CSGBox3D")
 
 func _on_cylinder_pressed() -> void:
-	create_csg(CSGCylinder3D)
+	request_create_node.emit("CSGCylinder3D")
 
 func _on_mesh_pressed() -> void:
-	create_csg(CSGMesh3D)
+	request_create_node.emit("CSGMesh3D")
 
 func _on_polygon_pressed() -> void:
-	create_csg(CSGPolygon3D)
+	request_create_node.emit("CSGPolygon3D")
 
 func _on_sphere_pressed() -> void:
-	create_csg(CSGSphere3D)
+	request_create_node.emit("CSGSphere3D")
 
 func _on_torus_pressed() -> void:
-	create_csg(CSGTorus3D)
+	request_create_node.emit("CSGTorus3D")
 
 func _on_stairs_pressed() -> void:
 	stairs_requested.emit()
-	if request_create_node.get_connections().size() > 0:
-		request_create_node.emit("CSGStairs3D")
-	else:
-		create_csg(CSGStairs3D)
+	request_create_node.emit("CSGStairs3D")
 
 func _on_ruler_pressed() -> void:
 	ruler_requested.emit()
@@ -391,96 +388,6 @@ func _update_picker_icon(path: String, preview: Texture2D, thumbnail: Texture2D,
 	var btn_picker: Button = find_child("MaterialPicker", true, false) as Button
 	if preview and btn_picker:
 		btn_picker.icon = preview
-
-func create_csg(type: Variant) -> void:
-	var selection = EditorInterface.get_selection()
-	var selected_nodes = selection.get_selected_nodes()
-	if selected_nodes.is_empty() or !(selected_nodes[0] is CSGShape3D):
-		push_warning(CsgBlockoutI18n.t("WARN_SELECT_CSG_SHAPE"))
-		return
-	var selected_node: CSGShape3D = selected_nodes[0]
-	var csg: CSGShape3D
-	match type:
-		CSGBox3D: csg = CSGBox3D.new()
-		CSGCylinder3D: csg = CSGCylinder3D.new()
-		CSGSphere3D: csg = CSGSphere3D.new()
-		CSGMesh3D: csg = CSGMesh3D.new()
-		CSGPolygon3D: csg = CSGPolygon3D.new()
-		CSGTorus3D: csg = CSGTorus3D.new()
-		CSGStairs3D: csg = CSGStairs3D.new()
-		_:
-			push_warning(CsgBlockoutI18n.t("WARN_UNSUPPORTED_CSG_TYPE"))
-			return
-
-	csg.operation = config.default_operation if config else CSGShape3D.OPERATION_UNION
-	if config:
-		csg.material = config.get_active_material()
-
-	var owner_ref = EditorInterface.get_edited_scene_root()
-	if owner_ref == null:
-		owner_ref = selected_node.get_owner()
-	if owner_ref == null:
-		owner_ref = selected_node
-
-	var parent: Node = null
-	var insert_index: int = -1
-
-	if selected_node is CSGCombiner3D:
-		parent = selected_node
-		insert_index = parent.get_child_count()
-	else:
-		parent = selected_node.get_parent()
-		if parent == null:
-			parent = selected_node
-			insert_index = parent.get_child_count()
-		else:
-			insert_index = selected_node.get_index() + 1
-
-	if CsgBlockout.undo_manager:
-		CsgBlockout.undo_manager.create_action(CsgBlockoutI18n.tf("ADD_NODE", [csg.get_class()]))
-		CsgBlockout.undo_manager.add_undo_reference(csg)
-		CsgBlockout.undo_manager.add_do_method(self, "_undoable_add_csg", parent, csg, owner_ref, selected_node.global_position, insert_index)
-		CsgBlockout.undo_manager.add_do_method(self, "_select_created_csg", csg)
-		CsgBlockout.undo_manager.add_undo_method(self, "_undoable_remove_csg", parent, csg)
-		CsgBlockout.undo_manager.add_undo_method(self, "_clear_selection_if", csg)
-		CsgBlockout.undo_manager.commit_action()
-	else:
-		parent.add_child(csg, true)
-		if insert_index >= 0 and insert_index < parent.get_child_count():
-			parent.move_child(csg, insert_index)
-		csg.owner = owner_ref
-		csg.global_position = selected_node.global_position
-		call_deferred("_select_created_csg", csg)
-
-func _deferred_select(csg: Node) -> void:
-	call_deferred("_select_created_csg", csg)
-
-func _undoable_add_csg(parent: Node, csg: CSGShape3D, owner_ref: Node, global_pos: Vector3, insert_index: int) -> void:
-	if csg.get_parent() != parent:
-		parent.add_child(csg, true)
-		if insert_index >= 0 and insert_index < parent.get_child_count():
-			parent.move_child(csg, insert_index)
-	csg.owner = owner_ref
-	csg.global_position = global_pos
-
-func _undoable_remove_csg(parent: Node, csg: CSGShape3D) -> void:
-	if is_instance_valid(csg) and csg.get_parent() == parent:
-		parent.remove_child(csg)
-
-func _clear_selection_if(csg: Node) -> void:
-	var selection: EditorSelection = EditorInterface.get_selection()
-	if selection:
-		var nodes: Array[Node] = selection.get_selected_nodes()
-		if csg in nodes:
-			selection.remove_node(csg)
-
-func _select_created_csg(csg: Node) -> void:
-	if not is_instance_valid(csg) or not csg.is_inside_tree():
-		return
-	var selection: EditorSelection = EditorInterface.get_selection()
-	if selection:
-		selection.clear()
-		selection.add_node(csg)
 
 func _on_language_toggle_item_selected(index: int) -> void:
 	if config:

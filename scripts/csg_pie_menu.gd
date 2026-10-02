@@ -30,6 +30,15 @@ var anim_progress: float = 0.0
 var popup_tween: Tween
 var item_hover_progress: Array[float] = []
 
+# Pointer in root-window coordinates, fed from the viewport events the plugin forwards
+# (more reliable than querying the OS cursor, and drivable by tests).
+var _pointer_global: Vector2 = Vector2.ZERO
+var _has_pointer: bool = false
+
+func set_pointer_global(pos: Vector2) -> void:
+	_pointer_global = pos
+	_has_pointer = true
+
 func _ready() -> void:
 	set_process(true)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -66,7 +75,7 @@ func _process(delta: float) -> void:
 	if items.is_empty():
 		return
 		
-	var mouse_pos: Vector2 = get_local_mouse_position()
+	var mouse_pos: Vector2 = get_global_transform().affine_inverse() * _pointer_global if _has_pointer else get_local_mouse_position()
 	var distance: float = mouse_pos.length()
 	var new_active_index: int = -1
 	
