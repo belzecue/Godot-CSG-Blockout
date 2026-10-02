@@ -149,9 +149,11 @@ func _on_selection_changed() -> void:
 	update_overlays()
 
 func _on_scene_changed(_scene_root: Node) -> void:
+	CsgBlockoutValidator.clear()
 	if outliner != null:
 		outliner.clear_solo()
 		outliner.mark_dirty()
+		outliner.refresh_checks()
 
 func _forward_3d_gui_input(viewport_camera: Camera3D, event: InputEvent) -> int:
 	var result: int = _pie_menu_input(viewport_camera, event)
@@ -286,6 +288,10 @@ func _on_action_requested(action_id: StringName) -> void:
 			CsgBlockoutNodeFactory.create("CSGPlayerReference3D", _viewport_center_hit())
 		&"check_jump":
 			CsgBlockoutMeasureOverlay.check_jump_between_selection()
+		&"validate":
+			CsgBlockoutValidator.run()
+			if outliner != null:
+				outliner.show_checks()
 		&"freeze":
 			await CsgBlockoutFreeze.freeze_selection()
 		&"unfreeze":
@@ -324,6 +330,7 @@ func _exit_tree() -> void:
 	if selection.selection_changed.is_connected(_on_selection_changed):
 		selection.selection_changed.disconnect(_on_selection_changed)
 	CsgBlockoutRaycast.clear_cache()
+	CsgBlockoutValidator.clear()
 
 	if _export_plugin != null:
 		remove_export_plugin(_export_plugin)

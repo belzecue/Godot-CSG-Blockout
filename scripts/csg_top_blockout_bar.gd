@@ -109,6 +109,7 @@ func _build_blockout_tools() -> void:
 		CsgBlockoutMeasureOverlay.set_enabled(on)
 		action_requested.emit(&"refresh_overlays"))
 	box.add_child(_dimensions_button)
+	_add_action_button(box, &"validate", editor_icon(&"StatusWarning"), "VALIDATE", "VALIDATE_TOOLTIP")
 	var player_btn: Button = _add_action_button(box, &"add_player_ref", editor_icon(&"CharacterBody3D"), "", "PLAYER_REF_TOOLTIP")
 	player_btn.text = ""
 	player_btn.remove_meta("i18n_text_key")

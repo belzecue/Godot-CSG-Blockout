@@ -71,6 +71,8 @@ func _ready() -> void:
 	_status.add_theme_color_override(&"font_color", Color(0.7, 0.72, 0.78))
 	page.add_child(_status)
 
+	_build_checks_page()
+
 	var tree_signals: SceneTree = get_tree()
 	if tree_signals != null:
 		tree_signals.node_added.connect(_on_node_changed)
@@ -334,6 +336,83 @@ func clear_solo() -> void:
 	for r: GeometryInstance3D in _render_roots():
 		RenderingServer.instance_set_visible(r.get_instance(), r.is_visible_in_tree())
 	_solo = null
+
+# --- checks page -----------------------------------------------------------------------
+
+var checks_tree: Tree
+var _checks_summary: Label
+
+func _build_checks_page() -> void:
+	var page: VBoxContainer = VBoxContainer.new()
+	page.name = "ChecksPage"
+	tabs.add_child(page)
+	tabs.set_tab_title(1, CsgBlockoutI18n.t("CHECKS_TAB"))
+	var bar: HBoxContainer = HBoxContainer.new()
+	page.add_child(bar)
+	var run_btn: Button = Button.new()
+	run_btn.text = CsgBlockoutI18n.t("RUN_CHECKS")
+	run_btn.icon = _icon(&"Play")
+	run_btn.pressed.connect(func() -> void:
+		CsgBlockoutValidator.run()
+		refresh_checks())
+	bar.add_child(run_btn)
+	var clear_btn: Button = Button.new()
+	clear_btn.text = CsgBlockoutI18n.t("CLEAR_CHECKS")
+	clear_btn.pressed.connect(func() -> void:
+		CsgBlockoutValidator.clear()
+		refresh_checks())
+	bar.add_child(clear_btn)
+	_checks_summary = Label.new()
+	_checks_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_checks_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	bar.add_child(_checks_summary)
+	checks_tree = Tree.new()
+	checks_tree.name = "ChecksTree"
+	checks_tree.hide_root = true
+	checks_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	checks_tree.item_selected.connect(_on_check_selected)
+	page.add_child(checks_tree)
+
+## Shows the checks tab (and the dock) with the latest validation results.
+func show_checks() -> void:
+	refresh_checks()
+	tabs.current_tab = 1
+	var dock: Node = get_parent()
+	if dock != null and dock.has_method(&"make_visible"):
+		dock.call(&"make_visible")
+
+func refresh_checks() -> void:
+	if checks_tree == null:
+		return
+	checks_tree.clear()
+	var root_item: TreeItem = checks_tree.create_item()
+	var issues: Array[Dictionary] = CsgBlockoutValidator.issues
+	if issues.is_empty():
+		_checks_summary.text = CsgBlockoutI18n.t("CHECKS_NONE")
+		return
+	_checks_summary.text = CsgBlockoutI18n.tf("CHECKS_SUMMARY", [issues.size()])
+	for i: int in issues.size():
+		var issue: Dictionary = issues[i]
+		var item: TreeItem = checks_tree.create_item(root_item)
+		var node: Node = issue["node"]
+		var owner_name: String = String(node.name) if is_instance_valid(node) else "?"
+		item.set_text(0, "%s — %s" % [owner_name, CsgBlockoutValidator.describe(issue)])
+		item.set_custom_color(0, (CsgBlockoutValidator.COLORS[issue["kind"]] as Color).lightened(0.25))
+		item.set_icon(0, _icon(&"StatusError" if issue["kind"] == "blocked" else &"StatusWarning"))
+		item.set_metadata(0, i)
+
+func _on_check_selected() -> void:
+	var item: TreeItem = checks_tree.get_selected()
+	if item == null:
+		return
+	var idx: int = int(item.get_metadata(0))
+	if idx < 0 or idx >= CsgBlockoutValidator.issues.size():
+		return
+	var node: Node = CsgBlockoutValidator.issues[idx]["node"]
+	if is_instance_valid(node):
+		var sel: EditorSelection = EditorInterface.get_selection()
+		sel.clear()
+		sel.add_node(node)
 
 # --- toolbar actions -------------------------------------------------------------------
 

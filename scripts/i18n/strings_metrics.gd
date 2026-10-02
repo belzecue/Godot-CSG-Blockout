@@ -44,4 +44,46 @@ const STRINGS: Dictionary = {
 		"zh": "间距 %s m，高差 %s m：跳不过去", "en": "Gap %s m, rise %s m: not jumpable", "ja": "間隔 %s m、高低差 %s m：跳べない", "ko": "간격 %s m, 높이 차 %s m: 점프 불가",
 		"es": "Separación %s m, desnivel %s m: no se puede saltar", "pt": "Vão %s m, desnível %s m: não dá para pular", "ru": "Зазор %s м, подъём %s м: не допрыгнуть",
 	},
+	"CHECKS_TAB": {
+		"zh": "检查", "en": "Checks", "ja": "チェック", "ko": "검사",
+		"es": "Comprobaciones", "pt": "Verificações", "ru": "Проверки",
+	},
+	"RUN_CHECKS": {
+		"zh": "运行检查", "en": "Run Checks", "ja": "チェック実行", "ko": "검사 실행",
+		"es": "Comprobar", "pt": "Verificar", "ru": "Проверить",
+	},
+	"CLEAR_CHECKS": {
+		"zh": "清除", "en": "Clear", "ja": "クリア", "ko": "지우기",
+		"es": "Limpiar", "pt": "Limpar", "ru": "Очистить",
+	},
+	"CHECKS_NONE": {
+		"zh": "没有发现问题", "en": "No issues found", "ja": "問題は見つかりませんでした", "ko": "문제가 없습니다",
+		"es": "No se encontraron problemas", "pt": "Nenhum problema encontrado", "ru": "Проблем не найдено",
+	},
+	"CHECKS_SUMMARY": {
+		"zh": "%d 个问题", "en": "%d issues", "ja": "問題 %d 件", "ko": "문제 %d개",
+		"es": "%d problemas", "pt": "%d problemas", "ru": "Проблем: %d",
+	},
+	"ISSUE_SLOPE": {
+		"zh": "坡度 %s°，超过可行走上限 %s°", "en": "Slope %s°, steeper than the walkable %s°", "ja": "勾配 %s°、歩行可能な %s° を超えています", "ko": "경사 %s°, 걸을 수 있는 %s° 초과",
+		"es": "Pendiente de %s°, más que los %s° transitables", "pt": "Inclinação de %s°, acima dos %s° caminháveis", "ru": "Уклон %s°, круче допустимых %s°",
+	},
+	"ISSUE_CEILING_CROUCH": {
+		"zh": "天花板只有 %s m，只能蹲着通过", "en": "Ceiling only %s m: crouch only", "ja": "天井が %s m しかなく、しゃがまないと通れない", "ko": "천장이 %s m뿐이라 웅크려야 통과",
+		"es": "Techo de solo %s m: solo agachado", "pt": "Teto de apenas %s m: só agachado", "ru": "Потолок всего %s м: только пригнувшись",
+	},
+	"ISSUE_CEILING_BLOCKED": {
+		"zh": "天花板只有 %s m，蹲着也过不去", "en": "Ceiling only %s m: blocked even crouching", "ja": "天井が %s m しかなく、しゃがんでも通れない", "ko": "천장이 %s m뿐이라 웅크려도 통과 불가",
+		"es": "Techo de solo %s m: bloqueado incluso agachado", "pt": "Teto de apenas %s m: bloqueado mesmo agachado", "ru": "Потолок всего %s м: не пройти даже пригнувшись",
+	},
+	"VALIDATE": {
+		"zh": "检查", "en": "Check", "ja": "チェック", "ko": "검사",
+		"es": "Comprobar", "pt": "Verificar", "ru": "Проверка",
+	},
+	"VALIDATE_TOOLTIP": {
+		"zh": "按角色参数检查关卡：过陡的坡、过低的天花板", "en": "Check the level against the player metrics: slopes too steep, ceilings too low",
+		"ja": "プレイヤー設定でレベルを確認：急すぎる坂、低すぎる天井", "ko": "플레이어 설정으로 레벨 검사: 너무 가파른 경사, 너무 낮은 천장",
+		"es": "Comprueba el nivel con las métricas del jugador: pendientes demasiado inclinadas, techos demasiado bajos", "pt": "Verifica o nível com as métricas do jogador: rampas íngremes demais, tetos baixos demais",
+		"ru": "Проверить уровень по параметрам игрока: слишком крутые уклоны, слишком низкие потолки",
+	},
 }
