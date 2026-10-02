@@ -15,6 +15,8 @@ const MORE_REPEATER_BAKE: int = 4
 const MORE_EXPORT_MESHLIB: int = 5
 const MORE_EXPORT_GLTF: int = 6
 const MORE_APPLY_GLTF: int = 7
+const MORE_SHOW_DIMENSIONS: int = 8
+const MORE_SHOW_RULERS: int = 9
 
 var _rulers_visible: bool = true
 var _grid_option: OptionButton
@@ -22,7 +24,6 @@ var _snap_button: Button
 var _more_button: MenuButton
 var _tool_buttons: Array[Button] = []
 var _freeze_button: Button
-var _dimensions_button: Button
 var _tag_menu: PopupMenu
 
 func _enter_tree() -> void:
@@ -40,11 +41,10 @@ func _enter_tree() -> void:
 		add_ruler_btn.text = ""
 		add_ruler_btn.set_meta("i18n_tooltip_key", "ADD_RULER_TOOLTIP")
 
+	# Ruler visibility is a checkable "⋯" entry; the scene's button only keeps the state.
 	var toggle_rulers_btn: Button = find_child("ToggleRulers", true, false) as Button
 	if toggle_rulers_btn:
-		toggle_rulers_btn.text = ""
-		toggle_rulers_btn.icon = editor_icon(&"GuiVisibilityVisible")
-		toggle_rulers_btn.set_meta("i18n_tooltip_key", "TOGGLE_RULERS_TOOLTIP")
+		toggle_rulers_btn.visible = false
 
 	# Repeater/Spreader actions live in the "⋯" menu: toolbar buttons that appear and
 	# disappear with the selection would make the 3D toolbar re-wrap and the viewport jump.
@@ -71,6 +71,11 @@ func _build_blockout_tools() -> void:
 	box.name = "BlockoutTools"
 	add_child(box)
 	move_child(box, 0)
+	# Flat icon buttons already have padding; no extra gaps, so Godot's own per-selection
+	# menus (e.g. "Mesh" for a frozen node) still fit on the same toolbar row.
+	for container: Control in [self, box, find_child("RulerTools", false, false) as Control]:
+		if container != null:
+			container.add_theme_constant_override(&"separation", 0)
 
 	_grid_option = OptionButton.new()
 	_grid_option.name = "GridSize"
@@ -99,18 +104,9 @@ func _build_blockout_tools() -> void:
 	_add_tool_button(box, &"opening_door", load("res://addons/csg_blockout/res/icons/door.svg") as Texture2D, "OPENING_DOOR_TOOLTIP")
 	_add_tool_button(box, &"opening_window", load("res://addons/csg_blockout/res/icons/window.svg") as Texture2D, "OPENING_WINDOW_TOOLTIP")
 
-	_dimensions_button = Button.new()
-	_dimensions_button.name = "DimensionsToggle"
-	_dimensions_button.flat = true
-	_dimensions_button.toggle_mode = true
-	_dimensions_button.icon = editor_icon(&"Ruler")
-	_dimensions_button.set_meta("i18n_tooltip_key", "DIMENSIONS_TOOLTIP")
+	# Dimension labels are toggled from the "⋯" menu (view toggles there keep the bar
+	# narrow enough to share a row with Godot's own per-selection menus).
 	CsgBlockoutMeasureOverlay.load_state()
-	_dimensions_button.button_pressed = CsgBlockoutMeasureOverlay.enabled
-	_dimensions_button.toggled.connect(func(on: bool) -> void:
-		CsgBlockoutMeasureOverlay.set_enabled(on)
-		action_requested.emit(&"refresh_overlays"))
-	box.add_child(_dimensions_button)
 	_add_action_button(box, &"validate", editor_icon(&"StatusWarning"), "VALIDATE", "VALIDATE_TOOLTIP")
 	_add_action_button(box, &"add_player_ref", editor_icon(&"CharacterBody3D"), "", "PLAYER_REF_TOOLTIP")
 
@@ -177,6 +173,11 @@ func _rebuild_more_menu() -> void:
 		return
 	var popup: PopupMenu = _more_button.get_popup()
 	popup.clear()
+	popup.add_check_item(CsgBlockoutI18n.t("SHOW_DIMENSIONS"), MORE_SHOW_DIMENSIONS)
+	popup.set_item_tooltip(popup.get_item_index(MORE_SHOW_DIMENSIONS), CsgBlockoutI18n.t("DIMENSIONS_TOOLTIP"))
+	popup.add_check_item(CsgBlockoutI18n.t("TOGGLE_RULERS"), MORE_SHOW_RULERS)
+	popup.set_item_tooltip(popup.get_item_index(MORE_SHOW_RULERS), CsgBlockoutI18n.t("TOGGLE_RULERS_TOOLTIP"))
+	popup.add_separator()
 	popup.add_item(CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), MORE_SNAP_TO_GRID)
 	popup.add_item(CsgBlockoutI18n.t("CHECK_JUMP_MENU"), MORE_CHECK_JUMP)
 	popup.add_separator()
@@ -209,6 +210,8 @@ func _rebuild_more_menu() -> void:
 ## Greys out entries that don't apply to the current selection.
 func _update_more_menu_state() -> void:
 	var popup: PopupMenu = _more_button.get_popup()
+	popup.set_item_checked(popup.get_item_index(MORE_SHOW_DIMENSIONS), CsgBlockoutMeasureOverlay.enabled)
+	popup.set_item_checked(popup.get_item_index(MORE_SHOW_RULERS), _rulers_visible)
 	var has_repeater: bool = EditorInterface.get_selection().get_selected_nodes().any(func(n: Node) -> bool: return n is CSGRepeater3D or n is CSGSpreader3D)
 	for id: int in [MORE_REPEATER_REFRESH, MORE_REPEATER_BAKE]:
 		var idx: int = popup.get_item_index(id)
@@ -247,6 +250,15 @@ func _on_snap_toggled(pressed: bool) -> void:
 
 func _on_more_id_pressed(id: int) -> void:
 	match id:
+		MORE_SHOW_DIMENSIONS:
+			CsgBlockoutMeasureOverlay.set_enabled(not CsgBlockoutMeasureOverlay.enabled)
+			action_requested.emit(&"refresh_overlays")
+		MORE_SHOW_RULERS:
+			var toggle_btn: Button = find_child("ToggleRulers", true, false) as Button
+			if toggle_btn:
+				toggle_btn.button_pressed = not _rulers_visible
+			else:
+				_on_toggle_rulers_toggled(not _rulers_visible)
 		MORE_SNAP_TO_GRID:
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
 		MORE_CHECK_JUMP:

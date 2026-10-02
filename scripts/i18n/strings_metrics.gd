@@ -12,6 +12,10 @@ const STRINGS: Dictionary = {
 		"zh": "尺寸", "en": "Size", "ja": "寸法", "ko": "치수",
 		"es": "Medidas", "pt": "Medidas", "ru": "Размеры",
 	},
+	"SHOW_DIMENSIONS": {
+		"zh": "显示尺寸标注", "en": "Show Dimensions", "ja": "寸法を表示", "ko": "치수 표시",
+		"es": "Mostrar dimensiones", "pt": "Mostrar dimensões", "ru": "Показывать размеры",
+	},
 	"DIMENSIONS_TOOLTIP": {
 		"zh": "在视口里标出选中图元的宽 × 高 × 深（米）", "en": "Label width × height × depth (meters) of the selected shapes in the viewport",
 		"ja": "選択したシェイプの幅×高さ×奥行き（m）をビューポートに表示", "ko": "선택한 도형의 너비 × 높이 × 깊이(m)를 뷰포트에 표시",

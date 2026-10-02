@@ -26,6 +26,7 @@ func _parse_begin(object: Object) -> void:
 		var toggle: CheckButton = CheckButton.new()
 		toggle.name = "ShowEdges"
 		toggle.text = CsgBlockoutI18n.t("MANIFOLD_SHOW_EDGES")
+		CsgBlockoutFrozenInspector.compact(toggle)
 		toggle.toggled.connect(func(on: bool) -> void:
 			if on:
 				CsgBlockoutManifoldCheck.show_edges(node, result)

@@ -24,6 +24,7 @@ static func _build_panel(frozen: MeshInstance3D) -> Control:
 	panel.name = "CsgBlockoutFrozenPanel"
 	var title: Label = Label.new()
 	title.text = CsgBlockoutI18n.t("FROZEN_PANEL_TITLE")
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_color_override(&"font_color", Color(0.55, 0.85, 1.0))
 	panel.add_child(title)
 
@@ -37,6 +38,10 @@ static func _build_panel(frozen: MeshInstance3D) -> Control:
 		collision.add_item(CsgBlockoutI18n.t(COLLISION_KEYS[mode]))
 	collision.select(CsgBlockoutBakePipeline.COLLISION_MODES.find(String(opts["collision"])))
 	collision.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	collision.fit_to_longest_item = false
+	compact(collision)
+	collision.tooltip_text = collision.text
+	collision.item_selected.connect(func(_i: int) -> void: collision.tooltip_text = collision.text)
 	_row(grid, "BAKE_COLLISION", collision)
 
 	var uv2: CheckBox = CheckBox.new()
@@ -79,12 +84,16 @@ static func _build_panel(frozen: MeshInstance3D) -> Control:
 			"lod": lod.button_pressed,
 		}
 		CsgBlockoutFreeze.rebake([frozen], chosen))
+	compact(rebake)
 	buttons.add_child(rebake)
 	var unfreeze: Button = Button.new()
 	unfreeze.name = "Unfreeze"
 	unfreeze.text = CsgBlockoutI18n.t("UNFREEZE")
 	unfreeze.icon = load("res://addons/csg_blockout/res/icons/unfreeze.svg") as Texture2D
 	unfreeze.pressed.connect(func() -> void: CsgBlockoutGltfRoundTrip.unfreeze_with_confirm([frozen]))
+	compact(unfreeze)
+	unfreeze.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	unfreeze.size_flags_stretch_ratio = 0.5
 	buttons.add_child(unfreeze)
 	_add_round_trip(panel, frozen)
 	panel.add_child(HSeparator.new())
@@ -94,6 +103,7 @@ static func _build_panel(frozen: MeshInstance3D) -> Control:
 static func _add_round_trip(panel: VBoxContainer, frozen: MeshInstance3D) -> void:
 	var title: Label = Label.new()
 	title.text = CsgBlockoutI18n.t("GLTF_SECTION")
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_color_override(&"font_color", Color(0.55, 0.85, 1.0))
 	panel.add_child(title)
 	var status: GltfStatus = GltfStatus.new()
@@ -113,6 +123,7 @@ static func _add_round_trip(panel: VBoxContainer, frozen: MeshInstance3D) -> voi
 	export_button.pressed.connect(func() -> void:
 		CsgBlockoutGltfRoundTrip.export_nodes([frozen])
 		status.refresh())
+	compact(export_button)
 	row.add_child(export_button)
 	var apply_button: Button = Button.new()
 	apply_button.name = "UseRefined"
@@ -120,6 +131,7 @@ static func _add_round_trip(panel: VBoxContainer, frozen: MeshInstance3D) -> voi
 	apply_button.icon = CSGTopBlockoutBar.editor_icon(&"Reload")
 	apply_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apply_button.pressed.connect(func() -> void: CsgBlockoutGltfRoundTrip.apply_refined([frozen]))
+	compact(apply_button)
 	row.add_child(apply_button)
 	var show_button: Button = Button.new()
 	show_button.name = "ShowGltf"
@@ -167,5 +179,19 @@ class GltfStatus extends Label:
 static func _row(grid: GridContainer, label_key: String, control: Control) -> void:
 	var label: Label = Label.new()
 	label.text = CsgBlockoutI18n.t(label_key)
+	label.tooltip_text = label.text
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_child(label)
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_child(control)
+
+## Long labels and translations must not widen the Inspector dock (that squeezes the
+## viewport and makes its toolbar wrap): the text clips with an ellipsis and the full
+## text goes to the tooltip.
+static func compact(button: Button) -> void:
+	button.clip_text = true
+	button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	if button.tooltip_text.is_empty():
+		button.tooltip_text = button.text
