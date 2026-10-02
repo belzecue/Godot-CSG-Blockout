@@ -14,14 +14,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Keyboard editing**: arrow keys nudge the selection one grid step along the axis closest to the view, Page Up/Page Down move it up/down (Shift: quarter step); `,` / `.` rotate by 15° (Shift: 90°); End drops the selection onto the surface below. Repeated nudges undo as one step.
 - **Snap Selection to Grid** (top bar "⋯" menu): axis-aligned boxes get every face on a grid line; other nodes align their bounds to the grid.
 - All new viewport shortcuts can be rebound in Editor Settings > Shortcuts > csg_blockout.
+- **Reversible bake (Freeze / Unfreeze)**: freeze a CSG tree into a plain `MeshInstance3D` (plus `StaticBody3D` collision when the CSG used collision) with the same name and transform. The original CSG is stored inside the frozen node, so Unfreeze brings it back exactly. Lights, markers and other non-CSG nodes inside the tree travel with it. Whatever you add to the frozen node (script, groups, layers, children) survives the next unfreeze/freeze. Exports strip the stored CSG, so frozen blockout costs nothing at runtime.
+- **Blockout outliner** (dock tab "Blockout"): only CSG trees and frozen blockout, with operation icons, show/hide, solo (editor-only, never changes the scene), lock, filtering, group/ungroup, and semantic renaming (`Wall_Corridor_01`) that leaves names you typed alone.
+- **Dimension labels**: selected shapes show width × height × depth in the viewport.
+- **Player reference** (`CSGPlayerReference3D`): editor-only capsule with crouch and eye height, the height you can jump onto, the sprint-jump arc and the steepest walkable slope.
+- **Jump check**: select two objects to place a ruler between their closest top edges and see whether the gap is jumpable.
+- **Level checks**: one click flags slopes steeper than the walkable angle and ceilings lower than standing or crouch height, highlighted in the viewport and listed in the outliner's Checks tab (click to select the shape to fix).
+- **Semantic tags** (wall, floor, hazard, interactive): color-coded grid materials plus a `csg_blockout_tag` metadata your game can read; export an SVG legend for design docs.
+- **Play From Here**: run the current scene with a first-person test character at the viewport center (or the cursor, from the pie menu or a shortcut you assign). It jumps exactly `single_jump_height` and a sprint jump covers `sprint_jump_distance`, the same numbers the ruler and the level checks use. Scenes without lights get a default sun and sky.
+- New player metrics in Project Settings: `capsule_radius`, `crouch_height`, `max_slope_angle`, `walk_speed`.
 
 ### Changed
 - Shapes created from the pie menu are placed on the surface under the cursor (resting on it, or half-embedded for subtraction), aligned to the surface normal and snapped to the grid. Sidebar creation keeps the selection's height and snaps horizontally.
 - The pie menu has six sectors: Union, Intersection and Subtraction stay where they were, and the gaps hold Draw (box, room), Openings (door, window) and More.
 - Switching the operation from the pie menu now applies to every selected CSG shape, as one undo step.
 - New shapes get readable names (`Box`, `Floor`, `Wall`, `Cut`, `Room`, ...) instead of `CSGBox3D2`.
+- The top bar is icon-only (labels moved to tooltips) and keeps a fixed width, so it sits on the same row as Godot's 3D toolbar and never makes the viewport jump when the selection changes. Repeater/Spreader Refresh and Bake moved to the "⋯" menu.
+- Rulers and player references are placed next to the selected CSG tree instead of inside it.
 
 ### Fixed
+- Repeater, Spreader and Ruler scripts no longer reference editor-only classes, which could make them fail to compile in exported games. Exports now also drop editor-only helper nodes (rulers, player references).
 - Godot no longer shows import errors for the animated images in `DocsImages/` (the folder is now ignored by the importer).
 - The material preset icons in the sidebar now scale with the editor's display scale like the other icons.
 - The pie menu no longer opens when you press `Shift + A` while holding the right mouse button to fly the viewport camera. The key press is passed on to the editor and other plugins instead of being swallowed. ([#4](https://github.com/qwqzhanqwq/Godot-CSG-Blockout/pull/4), thanks [@SuzukaDev](https://github.com/SuzukaDev))
