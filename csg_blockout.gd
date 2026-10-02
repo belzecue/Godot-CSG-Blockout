@@ -78,6 +78,7 @@ func _enter_tree() -> void:
 	# drawn over every 3D viewport.
 	CsgBlockoutShortcuts.register_all()
 	tools = CsgBlockoutToolManager.new(self)
+	tools.add_passive(CsgBlockoutTransformHotkeys.new())
 	set_input_event_forwarding_always_enabled()
 	set_force_draw_over_forwarding_enabled()
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()

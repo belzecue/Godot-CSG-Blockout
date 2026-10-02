@@ -5,6 +5,7 @@ extends RefCounted
 ## Feature string tables merged on top of TABLE (each script defines `const STRINGS`).
 const EXTRA_TABLES: Array[GDScript] = [
 	preload("res://addons/csg_blockout/scripts/i18n/strings_core.gd"),
+	preload("res://addons/csg_blockout/scripts/i18n/strings_tools.gd"),
 ]
 
 static var _merged: Dictionary = {}

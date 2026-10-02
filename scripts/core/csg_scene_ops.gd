@@ -45,6 +45,7 @@ class Action:
 	extends RefCounted
 
 	var name: String
+	var merge_mode: UndoRedo.MergeMode = UndoRedo.MERGE_DISABLE
 	var _ops: Array[Dictionary] = []
 	var _select_after: Array[Node] = []
 	var _has_selection: bool = false
@@ -85,6 +86,11 @@ class Action:
 		_has_selection = true
 		return self
 
+	## MERGE_ENDS folds repeated actions (e.g. holding a nudge key) into one undo step.
+	func merging(mode: UndoRedo.MergeMode) -> Action:
+		merge_mode = mode
+		return self
+
 	func is_empty() -> bool:
 		return _ops.is_empty()
 
@@ -95,7 +101,7 @@ class Action:
 		var root: Node = CsgBlockoutSceneOps.edited_root()
 		var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 		var previous_selection: Array[Node] = EditorInterface.get_selection().get_selected_nodes()
-		ur.create_action(name, UndoRedo.MERGE_DISABLE, root)
+		ur.create_action(name, merge_mode, root)
 		for op: Dictionary in _ops:
 			match op["kind"]:
 				"add":
