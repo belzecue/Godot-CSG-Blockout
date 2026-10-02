@@ -55,4 +55,62 @@ const STRINGS: Dictionary = {
 		"es": "Tras congelar %s, estos NodePath apuntan a nodos que ya no existen: %s", "pt": "Depois de congelar %s, estes NodePath apontam para nós que não existem mais: %s",
 		"ru": "После заморозки %s эти NodePath указывают на несуществующие узлы: %s",
 	},
+	"FROZEN_PANEL_TITLE": {
+		"zh": "❄ 冻结的白盒", "en": "❄ Frozen blockout", "ja": "❄ フリーズ済みブロックアウト", "ko": "❄ 고정된 블록아웃",
+		"es": "❄ Blockout congelado", "pt": "❄ Blockout congelado", "ru": "❄ Замороженный блокаут",
+	},
+	"BAKE_COLLISION": {
+		"zh": "碰撞", "en": "Collision", "ja": "コリジョン", "ko": "콜리전",
+		"es": "Colisión", "pt": "Colisão", "ru": "Коллизия",
+	},
+	"COLLISION_AUTO": {
+		"zh": "自动（沿用 CSG 的 use_collision）", "en": "Auto (follow the CSG's use_collision)", "ja": "自動（CSG の use_collision に従う）", "ko": "자동 (CSG의 use_collision 따름)",
+		"es": "Automática (según use_collision del CSG)", "pt": "Automática (segue use_collision do CSG)", "ru": "Авто (по use_collision у CSG)",
+	},
+	"COLLISION_NONE": {
+		"zh": "无", "en": "None", "ja": "なし", "ko": "없음",
+		"es": "Ninguna", "pt": "Nenhuma", "ru": "Нет",
+	},
+	"COLLISION_TRIMESH": {
+		"zh": "三角网格（精确）", "en": "Trimesh (exact)", "ja": "三角メッシュ（正確）", "ko": "삼각 메시 (정확)",
+		"es": "Trimesh (exacta)", "pt": "Trimesh (exata)", "ru": "Тримеш (точная)",
+	},
+	"COLLISION_PRIMITIVES": {
+		"zh": "逐图元原生形状（最快，仅纯并集）", "en": "Per-primitive shapes (fastest, union only)", "ja": "プリミティブごとの形状（最速、和のみ）", "ko": "도형별 기본 형태 (가장 빠름, 합집합만)",
+		"es": "Formas por primitiva (más rápida, solo unión)", "pt": "Formas por primitiva (mais rápida, só união)", "ru": "Формы по примитивам (быстрее всего, только объединение)",
+	},
+	"COLLISION_CONVEX": {
+		"zh": "整体凸包", "en": "Single convex hull", "ja": "全体の凸包", "ko": "전체 볼록 껍질",
+		"es": "Envolvente convexa única", "pt": "Envoltória convexa única", "ru": "Одна выпуклая оболочка",
+	},
+	"BAKE_UV2": {
+		"zh": "生成光照贴图 UV2", "en": "Lightmap UV2", "ja": "ライトマップ UV2", "ko": "라이트맵 UV2",
+		"es": "UV2 para lightmap", "pt": "UV2 de lightmap", "ru": "UV2 для лайтмапа",
+	},
+	"BAKE_TEXEL": {
+		"zh": "UV2 纹素尺寸", "en": "UV2 texel size", "ja": "UV2 テクセルサイズ", "ko": "UV2 텍셀 크기",
+		"es": "Tamaño de texel UV2", "pt": "Tamanho do texel UV2", "ru": "Размер текселя UV2",
+	},
+	"BAKE_OCCLUDER": {
+		"zh": "生成遮挡体", "en": "Occluder", "ja": "オクルーダー", "ko": "오클루더",
+		"es": "Oclusor", "pt": "Oclusor", "ru": "Окклюдер",
+	},
+	"BAKE_LOD": {
+		"zh": "生成 LOD", "en": "LODs", "ja": "LOD を生成", "ko": "LOD 생성",
+		"es": "LOD", "pt": "LOD", "ru": "LOD",
+	},
+	"REBAKE": {
+		"zh": "按这些选项重新烘焙", "en": "Rebake With These Options", "ja": "この設定で再ベイク", "ko": "이 설정으로 다시 굽기",
+		"es": "Rehornear con estas opciones", "pt": "Refazer com estas opções", "ru": "Перезапечь с этими настройками",
+	},
+	"REBAKE_ACTION": {
+		"zh": "重新烘焙冻结的白盒", "en": "Rebake Frozen Blockout", "ja": "フリーズ済みブロックアウトを再ベイク", "ko": "고정된 블록아웃 다시 굽기",
+		"es": "Rehornear blockout congelado", "pt": "Refazer blockout congelado", "ru": "Перезапечь замороженный блокаут",
+	},
+	"WARN_PRIMITIVE_COLLISION_CUTS": {
+		"zh": "树里有差集/交集，逐图元碰撞会堵住切出的洞，已改用三角网格碰撞", "en": "The tree has subtractions/intersections, which per-primitive collision would ignore; used trimesh collision instead",
+		"ja": "ツリーに差/積があるため、プリミティブごとのコリジョンでは穴が塞がる。三角メッシュに切り替えました", "ko": "트리에 빼기/교집합이 있어 도형별 콜리전은 구멍을 막습니다. 삼각 메시 콜리전을 사용했습니다",
+		"es": "El árbol tiene restas/intersecciones que la colisión por primitiva ignoraría; se usó trimesh", "pt": "A árvore tem subtrações/interseções que a colisão por primitiva ignoraria; usada trimesh",
+		"ru": "В дереве есть вычитания/пересечения, которые коллизия по примитивам проигнорирует; использован тримеш",
+	},
 }

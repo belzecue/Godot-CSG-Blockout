@@ -11,6 +11,7 @@ var tools: CsgBlockoutToolManager
 var _draw_tool: CsgBlockoutDrawTool
 var _opening_tool: CsgBlockoutOpeningTool
 var _export_plugin: CsgBlockoutExportPlugin
+var _frozen_inspector: CsgBlockoutFrozenInspector
 var outliner: CsgBlockoutOutliner
 var _outliner_dock: Control
 
@@ -116,6 +117,9 @@ func _enter_tree() -> void:
 
 	_export_plugin = CsgBlockoutExportPlugin.new()
 	add_export_plugin(_export_plugin)
+	CsgBlockoutBakePipeline.register_settings()
+	_frozen_inspector = CsgBlockoutFrozenInspector.new()
+	add_inspector_plugin(_frozen_inspector)
 
 	outliner = CsgBlockoutOutliner.new()
 	_outliner_dock = CsgBlockoutCompat.add_dock(self, outliner, CsgBlockoutI18n.t("OUTLINER_TITLE"), load("res://addons/csg_blockout/res/icons/box.svg") as Texture2D)
@@ -351,6 +355,9 @@ func _exit_tree() -> void:
 	if _export_plugin != null:
 		remove_export_plugin(_export_plugin)
 		_export_plugin = null
+	if _frozen_inspector != null:
+		remove_inspector_plugin(_frozen_inspector)
+		_frozen_inspector = null
 	if scene_changed.is_connected(_on_scene_changed):
 		scene_changed.disconnect(_on_scene_changed)
 	if _outliner_dock != null:

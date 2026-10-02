@@ -57,12 +57,15 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 		if root == scene_root:
 			_toast(CsgBlockoutI18n.t("WARN_FREEZE_SCENE_ROOT"), EditorToaster.SEVERITY_WARNING)
 			continue
-		var mesh: ArrayMesh = root.bake_static_mesh()
-		if mesh == null or mesh.get_surface_count() == 0:
+		var options: Dictionary = _options_for(root)
+		var baked: Dictionary = CsgBlockoutBakePipeline.build(root, options)
+		if baked.is_empty():
 			_toast(CsgBlockoutI18n.tf("WARN_FREEZE_EMPTY", [root.name]), EditorToaster.SEVERITY_WARNING)
 			continue
+		for w: String in baked["warnings"]:
+			_toast("%s: %s" % [root.name, w], EditorToaster.SEVERITY_WARNING)
 		_warn_external_references(root, scene_root)
-		var frozen: MeshInstance3D = _build_frozen(root, mesh)
+		var frozen: MeshInstance3D = _build_frozen(root, baked, options)
 		frozen.set_meta(META_SOURCE, _pack_source(root, scene_root))
 		# Swap under a temporary name, then take over the original name once the CSG
 		# root is gone (two siblings can't share a name).
@@ -81,9 +84,21 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 	action.select(frozen_nodes)
 	action.commit()
 
+## Bake options for a CSG root: the ones it was frozen with before (kept on the
+## shell), otherwise the project defaults.
+static func _options_for(root: CSGShape3D) -> Dictionary:
+	if root.has_meta(META_SHELL) and root.get_meta(META_SHELL) is PackedScene:
+		var shell: Node = (root.get_meta(META_SHELL) as PackedScene).instantiate()
+		var opts: Variant = shell.get_meta(META_BAKE, {}) if shell != null else {}
+		if shell != null:
+			shell.free()
+		if opts is Dictionary and not (opts as Dictionary).is_empty():
+			return CsgBlockoutBakePipeline.normalized(opts)
+	return CsgBlockoutBakePipeline.default_options()
+
 ## Frozen node: the stashed shell (if this CSG was frozen before) or a new
-## MeshInstance3D, with the baked mesh and generated collision.
-static func _build_frozen(root: CSGShape3D, mesh: ArrayMesh) -> MeshInstance3D:
+## MeshInstance3D, with the baked mesh and the generated collision/occluder.
+static func _build_frozen(root: CSGShape3D, baked: Dictionary, options: Dictionary) -> MeshInstance3D:
 	var frozen: MeshInstance3D = null
 	if root.has_meta(META_SHELL) and root.get_meta(META_SHELL) is PackedScene:
 		frozen = (root.get_meta(META_SHELL) as PackedScene).instantiate() as MeshInstance3D
@@ -93,31 +108,67 @@ static func _build_frozen(root: CSGShape3D, mesh: ArrayMesh) -> MeshInstance3D:
 		frozen.cast_shadow = root.cast_shadow
 		frozen.gi_mode = root.gi_mode
 	frozen.name = root.name
-	frozen.mesh = mesh
+	frozen.mesh = baked["mesh"]
 	for child: Node in frozen.get_children():
 		if child.has_meta(META_GENERATED):
 			frozen.remove_child(child)
 			child.free()
-	var options: Dictionary = {"collision": "trimesh" if root.use_collision else "none"}
-	frozen.set_meta(META_BAKE, options)
-	if root.use_collision:
-		var shape: ConcavePolygonShape3D = root.bake_collision_shape()
-		if shape != null:
-			var body: StaticBody3D = StaticBody3D.new()
-			body.name = COLLISION_NAME
-			body.collision_layer = root.collision_layer
-			body.collision_mask = root.collision_mask
-			body.set_meta(META_GENERATED, true)
-			var col: CollisionShape3D = CollisionShape3D.new()
-			col.name = "Shape"
-			col.shape = shape
-			body.add_child(col)
-			frozen.add_child(body)
-			frozen.move_child(body, 0)
-			# Owners must be ancestors, so set them once the body hangs under `frozen`.
-			body.owner = frozen
-			col.owner = frozen
+	frozen.set_meta(META_BAKE, CsgBlockoutBakePipeline.normalized(options))
+	var index: int = 0
+	for gen: Node in baked["generated"]:
+		frozen.add_child(gen)
+		frozen.move_child(gen, index)
+		index += 1
+		# Owners must be ancestors, so set them once the node hangs under `frozen`.
+		CsgBlockoutSceneOps.own_subtree(gen, frozen)
 	return frozen
+
+## Rebakes frozen nodes in place from their stored CSG (no unfreeze needed), with
+## `options` (null = keep each node's own options). One undo step.
+static func rebake(frozen_nodes: Array[MeshInstance3D], options: Variant = null) -> void:
+	var scene_root: Node = EditorInterface.get_edited_scene_root()
+	if scene_root == null or frozen_nodes.is_empty():
+		return
+	var temps: Array[Dictionary] = []
+	for frozen: MeshInstance3D in frozen_nodes:
+		var packed: PackedScene = frozen.get_meta(META_SOURCE) as PackedScene if is_frozen(frozen) else null
+		if packed == null:
+			continue
+		# Instantiate the stored CSG next to the frozen node on render layer 0, so it
+		# computes its mesh without ever being drawn, then bake from it.
+		var temp: CSGShape3D = packed.instantiate() as CSGShape3D
+		if temp == null:
+			continue
+		temp.layers = 0
+		frozen.get_parent().add_child(temp)
+		temp.global_transform = frozen.global_transform
+		temps.append({"frozen": frozen, "temp": temp})
+	if temps.is_empty():
+		return
+	await scene_root.get_tree().process_frame
+	await scene_root.get_tree().process_frame
+	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(CsgBlockoutI18n.t("REBAKE_ACTION"))
+	for t: Dictionary in temps:
+		var frozen: MeshInstance3D = t["frozen"]
+		var temp: CSGShape3D = t["temp"]
+		var opts: Dictionary = CsgBlockoutBakePipeline.normalized(options if options is Dictionary else frozen.get_meta(META_BAKE, {}))
+		var baked: Dictionary = CsgBlockoutBakePipeline.build(temp, opts)
+		temp.get_parent().remove_child(temp)
+		temp.free()
+		if baked.is_empty():
+			continue
+		for w: String in baked["warnings"]:
+			_toast("%s: %s" % [frozen.name, w], EditorToaster.SEVERITY_WARNING)
+		action.set_property(frozen, &"mesh", baked["mesh"])
+		action.assign_meta(frozen, META_BAKE, opts)
+		for child: Node in frozen.get_children():
+			if child.has_meta(META_GENERATED):
+				action.remove_node(child)
+		var index: int = 0
+		for gen: Node in baked["generated"]:
+			action.add_node(frozen, gen, index, null, "subtree")
+			index += 1
+	action.commit()
 
 ## Packs a copy of the CSG subtree (without the non-CSG extras and the shell).
 static func _pack_source(root: CSGShape3D, scene_root: Node) -> PackedScene:
@@ -225,7 +276,8 @@ static func _pack_shell(frozen: MeshInstance3D, scene_root: Node) -> PackedScene
 	var copy: MeshInstance3D = frozen.duplicate() as MeshInstance3D
 	_mirror_owners(frozen, copy, scene_root, copy)
 	copy.mesh = null
-	for meta: StringName in [META_SOURCE, META_BAKE]:
+	# Bake options stay on the shell so the next freeze reuses them.
+	for meta: StringName in [META_SOURCE]:
 		if copy.has_meta(meta):
 			copy.remove_meta(meta)
 	for child: Node in copy.get_children():
