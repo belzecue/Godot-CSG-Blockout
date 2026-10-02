@@ -106,6 +106,7 @@ func _enter_tree() -> void:
 	CsgBlockoutShortcuts.register_all()
 	tools = CsgBlockoutToolManager.new(self)
 	tools.add_passive(CsgBlockoutTransformHotkeys.new())
+	tools.add_passive(CsgBlockoutFaceDrag.new())
 	_draw_tool = CsgBlockoutDrawTool.new()
 	_opening_tool = CsgBlockoutOpeningTool.new()
 	tools.active_tool_changed.connect(topbar.set_active_tool)

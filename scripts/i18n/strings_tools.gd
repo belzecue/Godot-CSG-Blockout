@@ -67,6 +67,10 @@ const STRINGS: Dictionary = {
 		"zh": "移动鼠标定高度 · 点击确认 · Esc 取消", "en": "Move to set the height · Click to confirm · Esc to cancel", "ja": "マウスで高さを決める · クリックで確定 · Esc でキャンセル", "ko": "마우스로 높이 설정 · 클릭해서 확정 · Esc로 취소",
 		"es": "Mueve para fijar la altura · Clic para confirmar · Esc para cancelar", "pt": "Mova para definir a altura · Clique para confirmar · Esc para cancelar", "ru": "Двигайте мышь для высоты · Щелчок — подтвердить · Esc — отмена",
 	},
+	"PUSH_FACE_ACTION": {
+		"zh": "推拉面", "en": "Push/Pull Face", "ja": "面を押し出し/引き込み", "ko": "면 밀기/당기기",
+		"es": "Empujar/tirar cara", "pt": "Empurrar/puxar face", "ru": "Сдвинуть грань",
+	},
 	"DOOR": {
 		"zh": "门", "en": "Door", "ja": "ドア", "ko": "문",
 		"es": "Puerta", "pt": "Porta", "ru": "Дверь",
