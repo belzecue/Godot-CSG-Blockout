@@ -5,7 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- **Draw in the viewport**: drag a base on any surface (or the ground), release, move the mouse to set the height, click to confirm. With the operation set to Subtraction the same tool cuts: the box extrudes into the surface and lands in the combiner that owns it (a lone wall is wrapped into a new combiner automatically). A **Room** variant creates a shell box plus a hollow; wall thickness, floor thickness and open top are in Project Settings under `addons/csg_blockout/room`.
+- **Door and window presets**: click a wall to cut a doorway (dropped to the floor) or a window (at sill height). The cut is aligned to the wall and goes through its measured thickness. Mouse wheel changes width, Shift+wheel height, F adds a frame. Sizes live under `addons/csg_blockout/openings`.
+- **Face push/pull**: Shift+drag a face of a selected box, cylinder or stairs to move it along its normal. The opposite face stays put and axis-aligned faces land on grid lines. A Shift+click without dragging still works like Godot's Shift+click.
+- **Duplicate along an axis** (`Ctrl+Shift+D`): move the mouse along X, Y or Z to repeat the selection with its own size as the step; wheel adds a gap, X/Y/Z lock the axis, click to create.
+- **Grid and snapping**: one grid size for all CSG Blockout tools (0.125–8 m), changed with `[` / `]` or the new top bar dropdown, with a snap toggle (hold Ctrl to invert while dragging). The current grid is shown in the viewport.
+- **Keyboard editing**: arrow keys nudge the selection one grid step along the axis closest to the view, Page Up/Page Down move it up/down (Shift: quarter step); `,` / `.` rotate by 15° (Shift: 90°); End drops the selection onto the surface below. Repeated nudges undo as one step.
+- **Snap Selection to Grid** (top bar "⋯" menu): axis-aligned boxes get every face on a grid line; other nodes align their bounds to the grid.
+- All new viewport shortcuts can be rebound in Editor Settings > Shortcuts > csg_blockout.
+
+### Changed
+- Shapes created from the pie menu are placed on the surface under the cursor (resting on it, or half-embedded for subtraction), aligned to the surface normal and snapped to the grid. Sidebar creation keeps the selection's height and snaps horizontally.
+- The pie menu has six sectors: Union, Intersection and Subtraction stay where they were, and the gaps hold Draw (box, room), Openings (door, window) and More.
+- Switching the operation from the pie menu now applies to every selected CSG shape, as one undo step.
+- New shapes get readable names (`Box`, `Floor`, `Wall`, `Cut`, `Room`, ...) instead of `CSGBox3D2`.
+
 ### Fixed
+- Godot no longer shows import errors for the animated images in `DocsImages/` (the folder is now ignored by the importer).
+- The material preset icons in the sidebar now scale with the editor's display scale like the other icons.
 - The pie menu no longer opens when you press `Shift + A` while holding the right mouse button to fly the viewport camera. The key press is passed on to the editor and other plugins instead of being swallowed. ([#4](https://github.com/qwqzhanqwq/Godot-CSG-Blockout/pull/4), thanks [@SuzukaDev](https://github.com/SuzukaDev))
 
 ### Documentation
