@@ -166,6 +166,11 @@ func _add_item(n: Node, parent_item: TreeItem, counts: Dictionary) -> void:
 	item.set_text(Col.NAME, String(n.name))
 	item.set_metadata(Col.NAME, n.get_instance_id())
 	item.set_icon(Col.NAME, _node_icon(n))
+	if n is CSGMesh3D and (n as CSGMesh3D).mesh != null:
+		var check: Dictionary = CsgBlockoutManifoldCheck.analyze_cached((n as CSGMesh3D).mesh)
+		if not bool(check["ok"]) and not bool(check["skipped"]):
+			item.set_icon(Col.NAME, _icon(&"StatusWarning"))
+			item.set_tooltip_text(Col.NAME, CsgBlockoutManifoldCheck.describe(check))
 	var tag: StringName = CsgBlockoutTags.tag_of(n)
 	if CsgBlockoutTags.COLORS.has(tag):
 		item.set_icon_modulate(Col.NAME, CsgBlockoutTags.COLORS[tag])

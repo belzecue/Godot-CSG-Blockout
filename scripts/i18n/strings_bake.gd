@@ -113,4 +113,25 @@ const STRINGS: Dictionary = {
 		"es": "El árbol tiene restas/intersecciones que la colisión por primitiva ignoraría; se usó trimesh", "pt": "A árvore tem subtrações/interseções que a colisão por primitiva ignoraria; usada trimesh",
 		"ru": "В дереве есть вычитания/пересечения, которые коллизия по примитивам проигнорирует; использован тримеш",
 	},
+	"MANIFOLD_OK": {
+		"zh": "✓ 网格是闭合流形，可以放心用于 CSG", "en": "✓ The mesh is a closed manifold, safe for CSG", "ja": "✓ メッシュは閉じた多様体で、CSG で安全に使えます", "ko": "✓ 메시가 닫힌 매니폴드라 CSG에 안전합니다",
+		"es": "✓ La malla es un manifold cerrado, segura para CSG", "pt": "✓ A malha é uma variedade fechada, segura para CSG", "ru": "✓ Меш — замкнутое многообразие, безопасен для CSG",
+	},
+	"MANIFOLD_BAD": {
+		"zh": "⚠ 网格不是闭合流形：%d 条开放边、%d 条被三个以上面共用的边、%d 条朝向相反的边。CSG 可能静默出错（结果为空或缺面）。",
+		"en": "⚠ Not a closed manifold: %d open edges, %d edges shared by more than two faces, %d edges with flipped faces. CSG may silently give empty or wrong results.",
+		"ja": "⚠ 閉じた多様体ではありません：開いた辺 %d、3 面以上が共有する辺 %d、向きが逆の辺 %d。CSG が黙って空や誤った結果になる可能性があります。",
+		"ko": "⚠ 닫힌 매니폴드가 아닙니다: 열린 모서리 %d개, 세 면 이상이 공유하는 모서리 %d개, 방향이 뒤집힌 모서리 %d개. CSG가 조용히 빈 결과나 잘못된 결과를 낼 수 있습니다.",
+		"es": "⚠ No es un manifold cerrado: %d aristas abiertas, %d aristas compartidas por más de dos caras, %d aristas con caras invertidas. El CSG puede dar resultados vacíos o erróneos sin avisar.",
+		"pt": "⚠ Não é uma variedade fechada: %d arestas abertas, %d arestas compartilhadas por mais de duas faces, %d arestas com faces invertidas. O CSG pode dar resultados vazios ou errados sem aviso.",
+		"ru": "⚠ Не замкнутое многообразие: открытых рёбер %d, рёбер с более чем двумя гранями %d, рёбер с перевёрнутыми гранями %d. CSG может молча дать пустой или неверный результат.",
+	},
+	"MANIFOLD_SKIPPED": {
+		"zh": "网格有 %d 个三角形，太大，跳过流形检查", "en": "Mesh has %d triangles; manifold check skipped", "ja": "メッシュが %d 三角形と大きいため多様体チェックを省略", "ko": "메시 삼각형이 %d개로 커서 매니폴드 검사를 건너뜀",
+		"es": "La malla tiene %d triángulos; se omite la comprobación", "pt": "A malha tem %d triângulos; verificação ignorada", "ru": "В меше %d треугольников; проверка пропущена",
+	},
+	"MANIFOLD_SHOW_EDGES": {
+		"zh": "在视口中标出问题边", "en": "Show problem edges in the viewport", "ja": "問題の辺をビューポートに表示", "ko": "문제 모서리를 뷰포트에 표시",
+		"es": "Mostrar aristas problemáticas en el viewport", "pt": "Mostrar arestas com problema na viewport", "ru": "Показать проблемные рёбра во вьюпорте",
+	},
 }
