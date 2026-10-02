@@ -101,7 +101,13 @@ class Action:
 		var root: Node = CsgBlockoutSceneOps.edited_root()
 		var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 		var previous_selection: Array[Node] = EditorInterface.get_selection().get_selected_nodes()
-		ur.create_action(name, merge_mode, root)
+		# Undo runs the queued operations in reverse (backward_undo_ops), so compound
+		# edits unwind like a stack: e.g. a wrapped wall moves back out of its new
+		# combiner before that combiner is removed, keeping the wall's owner.
+		ur.create_action(name, merge_mode, root, true)
+		if _has_selection:
+			# Registered first so that, reversed, it runs after everything is restored.
+			ur.add_undo_method(target, &"_do_select", previous_selection)
 		for op: Dictionary in _ops:
 			match op["kind"]:
 				"add":
@@ -120,7 +126,6 @@ class Action:
 					ur.add_undo_property(op["obj"], op["prop"], op["old"])
 		if _has_selection:
 			ur.add_do_method(target, &"_do_select", _select_after)
-			ur.add_undo_method(target, &"_do_select", previous_selection)
 		ur.commit_action()
 
 

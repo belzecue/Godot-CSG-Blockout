@@ -8,6 +8,7 @@ var topbar: CSGTopBlockoutBar
 var ruler_gizmo_plugin: CSGRulerGizmoPlugin
 var tools: CsgBlockoutToolManager
 var _draw_tool: CsgBlockoutDrawTool
+var _opening_tool: CsgBlockoutOpeningTool
 
 static var csg_plugin_path: String
 static var undo_manager: EditorUndoRedoManager
@@ -30,6 +31,8 @@ func _get_shape_menu() -> Array[Dictionary]:
 		{"label": CsgBlockoutI18n.t("STAIRS"), "type": "create_csg", "csg_type": "CSGStairs3D"}
 	]
 
+## Six sectors: the boolean submenus keep their original directions (0°, 120°,
+## 240°) and the tool submenus fill the gaps between them.
 func _get_pie_menu_items() -> Array[Dictionary]:
 	return [
 		{
@@ -38,15 +41,38 @@ func _get_pie_menu_items() -> Array[Dictionary]:
 			"children": _get_shape_menu()
 		},
 		{
+			"label": CsgBlockoutI18n.t("DRAW_MENU"), "type": "submenu",
+			"children": [
+				{"label": CsgBlockoutI18n.t("BOX"), "type": "action", "action_id": &"draw_box"},
+				{"label": CsgBlockoutI18n.t("ROOM"), "type": "action", "action_id": &"draw_room"},
+			]
+		},
+		{
 			"label": CsgBlockoutI18n.t("INTERSECTION"), "type": "submenu",
 			"operation": 1,
 			"children": _get_shape_menu()
 		},
 		{
+			"label": CsgBlockoutI18n.t("OPENINGS_MENU"), "type": "submenu",
+			"children": [
+				{"label": CsgBlockoutI18n.t("DOOR"), "type": "action", "action_id": &"opening_door"},
+				{"label": CsgBlockoutI18n.t("WINDOW"), "type": "action", "action_id": &"opening_window"},
+			]
+		},
+		{
 			"label": CsgBlockoutI18n.t("SUBTRACTION"), "type": "submenu",
 			"operation": 2,
 			"children": _get_shape_menu()
-		}
+		},
+		{
+			"label": CsgBlockoutI18n.t("MORE_MENU"), "type": "submenu",
+			"children": _get_more_menu()
+		},
+	]
+
+func _get_more_menu() -> Array[Dictionary]:
+	return [
+		{"label": CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), "type": "action", "action_id": &"snap_to_grid"},
 	]
 
 func _enter_tree() -> void:
@@ -81,6 +107,7 @@ func _enter_tree() -> void:
 	tools = CsgBlockoutToolManager.new(self)
 	tools.add_passive(CsgBlockoutTransformHotkeys.new())
 	_draw_tool = CsgBlockoutDrawTool.new()
+	_opening_tool = CsgBlockoutOpeningTool.new()
 	tools.active_tool_changed.connect(topbar.set_active_tool)
 	topbar.action_requested.connect(_on_action_requested)
 	set_input_event_forwarding_always_enabled()
@@ -197,6 +224,9 @@ func _on_pie_menu_action_triggered(item: Dictionary) -> void:
 			config.default_operation = op
 		CsgBlockoutNodeFactory.set_operation_on_selection(op)
 
+	elif action_type == "action":
+		_on_action_requested(item.get("action_id", &""))
+
 	elif action_type == "create_csg":
 		var csg_type: String = item.get("csg_type", "")
 		if not csg_type.is_empty():
@@ -213,18 +243,25 @@ func _on_create_requested(csg_type: String) -> void:
 func _on_action_requested(action_id: StringName) -> void:
 	match action_id:
 		&"draw_box":
-			_toggle_draw(CsgBlockoutDrawTool.Mode.BOX)
+			_toggle_tool(_draw_tool, CsgBlockoutDrawTool.Mode.BOX)
 		&"draw_room":
-			_toggle_draw(CsgBlockoutDrawTool.Mode.ROOM)
+			_toggle_tool(_draw_tool, CsgBlockoutDrawTool.Mode.ROOM)
+		&"opening_door":
+			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.DOOR)
+		&"opening_window":
+			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.WINDOW)
+		&"snap_to_grid":
+			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
 
-func _toggle_draw(mode: CsgBlockoutDrawTool.Mode) -> void:
-	if tools.active == _draw_tool:
-		var same: bool = _draw_tool.mode == mode
+## Activates `tool` in `mode`, or turns it off when it is already active in that mode.
+func _toggle_tool(tool: CsgBlockoutTool, mode: int) -> void:
+	if tools.active == tool:
+		var same: bool = tool.get(&"mode") == mode
 		tools.deactivate()
 		if same:
 			return
-	_draw_tool.mode = mode
-	tools.activate(_draw_tool)
+	tool.set(&"mode", mode)
+	tools.activate(tool)
 
 func _exit_tree() -> void:
 	if tools != null:

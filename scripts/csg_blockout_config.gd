@@ -22,6 +22,16 @@ const SETTING_SPRINT_JUMP_DISTANCE: String = "addons/csg_blockout/player_metrics
 const SETTING_ROOM_WALL_THICKNESS: String = "addons/csg_blockout/room/wall_thickness"
 const SETTING_ROOM_FLOOR_THICKNESS: String = "addons/csg_blockout/room/floor_thickness"
 const SETTING_ROOM_OPEN_TOP: String = "addons/csg_blockout/room/open_top"
+const SETTING_DOOR_SIZE: String = "addons/csg_blockout/openings/door_size"
+const SETTING_WINDOW_SIZE: String = "addons/csg_blockout/openings/window_size"
+const SETTING_WINDOW_SILL: String = "addons/csg_blockout/openings/window_sill_height"
+const SETTING_OPENING_FRAME: String = "addons/csg_blockout/openings/add_frame"
+const SETTING_FRAME_WIDTH: String = "addons/csg_blockout/openings/frame_width"
+const DEFAULT_DOOR_SIZE: Vector2 = Vector2(1.0, 2.1)
+const DEFAULT_WINDOW_SIZE: Vector2 = Vector2(1.2, 1.2)
+const DEFAULT_WINDOW_SILL: float = 0.9
+const DEFAULT_OPENING_FRAME: bool = false
+const DEFAULT_FRAME_WIDTH: float = 0.1
 const DEFAULT_ROOM_WALL_THICKNESS: float = 0.25
 const DEFAULT_ROOM_FLOOR_THICKNESS: float = 0.25
 const DEFAULT_ROOM_OPEN_TOP: bool = true
@@ -209,6 +219,11 @@ func _ensure_settings_exist() -> void:
 	_register(SETTING_ROOM_WALL_THICKNESS, DEFAULT_ROOM_WALL_THICKNESS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,5.0,0.01,or_greater")
 	_register(SETTING_ROOM_FLOOR_THICKNESS, DEFAULT_ROOM_FLOOR_THICKNESS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,5.0,0.01,or_greater")
 	_register(SETTING_ROOM_OPEN_TOP, DEFAULT_ROOM_OPEN_TOP, TYPE_BOOL)
+	_register(SETTING_DOOR_SIZE, DEFAULT_DOOR_SIZE, TYPE_VECTOR2)
+	_register(SETTING_WINDOW_SIZE, DEFAULT_WINDOW_SIZE, TYPE_VECTOR2)
+	_register(SETTING_WINDOW_SILL, DEFAULT_WINDOW_SILL, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.0,5.0,0.05,or_greater")
+	_register(SETTING_OPENING_FRAME, DEFAULT_OPENING_FRAME, TYPE_BOOL)
+	_register(SETTING_FRAME_WIDTH, DEFAULT_FRAME_WIDTH, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,1.0,0.01,or_greater")
 
 	if not ProjectSettings.settings_changed.is_connected(_on_project_settings_changed):
 		ProjectSettings.settings_changed.connect(_on_project_settings_changed)
@@ -237,6 +252,31 @@ func get_room_floor_thickness() -> float:
 
 func get_room_open_top() -> bool:
 	return bool(_get_setting(SETTING_ROOM_OPEN_TOP, DEFAULT_ROOM_OPEN_TOP))
+
+func _get_size(path: String, default_value: Vector2) -> Vector2:
+	var v: Variant = _get_setting(path, default_value)
+	if v is Vector2 and (v as Vector2).x > 0.0 and (v as Vector2).y > 0.0:
+		return v
+	return default_value
+
+func get_door_size() -> Vector2:
+	return _get_size(SETTING_DOOR_SIZE, DEFAULT_DOOR_SIZE)
+
+func get_window_size() -> Vector2:
+	return _get_size(SETTING_WINDOW_SIZE, DEFAULT_WINDOW_SIZE)
+
+func get_window_sill_height() -> float:
+	var v: Variant = _get_setting(SETTING_WINDOW_SILL, DEFAULT_WINDOW_SILL)
+	return maxf(float(v), 0.0) if (v is float or v is int) else DEFAULT_WINDOW_SILL
+
+func get_opening_frame() -> bool:
+	return bool(_get_setting(SETTING_OPENING_FRAME, DEFAULT_OPENING_FRAME))
+
+func set_opening_frame(value: bool) -> void:
+	_set_setting(SETTING_OPENING_FRAME, value)
+
+func get_frame_width() -> float:
+	return get_positive_float(SETTING_FRAME_WIDTH, DEFAULT_FRAME_WIDTH)
 
 func get_preset_material(preset: MaterialPreset) -> Material:
 	var file_name := ""

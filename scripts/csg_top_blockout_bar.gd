@@ -85,8 +85,10 @@ func _build_blockout_tools() -> void:
 	box.add_child(_snap_button)
 
 	box.add_child(VSeparator.new())
-	_add_tool_button(box, &"draw_box", &"CSGBox3D", "DRAW_BOX_TOOLTIP")
-	_add_tool_button(box, &"draw_room", &"CSGCombiner3D", "DRAW_ROOM_TOOLTIP")
+	_add_tool_button(box, &"draw_box", editor_icon(&"CSGBox3D"), "DRAW_BOX_TOOLTIP")
+	_add_tool_button(box, &"draw_room", editor_icon(&"CSGCombiner3D"), "DRAW_ROOM_TOOLTIP")
+	_add_tool_button(box, &"opening_door", load("res://addons/csg_blockout/res/icons/door.svg") as Texture2D, "OPENING_DOOR_TOOLTIP")
+	_add_tool_button(box, &"opening_window", load("res://addons/csg_blockout/res/icons/window.svg") as Texture2D, "OPENING_WINDOW_TOOLTIP")
 
 	_more_button = MenuButton.new()
 	_more_button.name = "MoreActions"
@@ -101,12 +103,12 @@ func _build_blockout_tools() -> void:
 	box.add_child(sep)
 
 ## Icon toggle that asks the plugin to (de)activate viewport tool `tool_id`.
-func _add_tool_button(parent: Control, tool_id: StringName, icon_name: StringName, tooltip_key: String) -> Button:
+func _add_tool_button(parent: Control, tool_id: StringName, icon: Texture2D, tooltip_key: String) -> Button:
 	var btn: Button = Button.new()
 	btn.name = "Tool_" + String(tool_id)
 	btn.flat = true
 	btn.toggle_mode = true
-	btn.icon = editor_icon(icon_name)
+	btn.icon = icon
 	if btn.icon == null:
 		btn.text = String(tool_id)
 	btn.set_meta("i18n_tooltip_key", tooltip_key)
