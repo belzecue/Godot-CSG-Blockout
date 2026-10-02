@@ -13,6 +13,8 @@ const MORE_EXPORT_LEGEND: int = 2
 const MORE_REPEATER_REFRESH: int = 3
 const MORE_REPEATER_BAKE: int = 4
 const MORE_EXPORT_MESHLIB: int = 5
+const MORE_EXPORT_GLTF: int = 6
+const MORE_APPLY_GLTF: int = 7
 
 var _rulers_visible: bool = true
 var _grid_option: OptionButton
@@ -198,6 +200,8 @@ func _rebuild_more_menu() -> void:
 	popup.add_item(CsgBlockoutI18n.t("EXPORT_LEGEND"), MORE_EXPORT_LEGEND)
 	popup.add_separator()
 	popup.add_item(CsgBlockoutI18n.t("EXPORT_MESHLIB"), MORE_EXPORT_MESHLIB)
+	popup.add_item(CsgBlockoutI18n.t("GLTF_EXPORT_MENU"), MORE_EXPORT_GLTF)
+	popup.add_item(CsgBlockoutI18n.t("GLTF_APPLY_MENU"), MORE_APPLY_GLTF)
 	popup.add_separator()
 	popup.add_item("%s (Repeater/Spreader)" % CsgBlockoutI18n.t("REFRESH"), MORE_REPEATER_REFRESH)
 	popup.add_item("%s (Repeater/Spreader)" % CsgBlockoutI18n.t("BAKE"), MORE_REPEATER_BAKE)
@@ -216,6 +220,11 @@ func _update_more_menu_state() -> void:
 	var meshlib_idx: int = popup.get_item_index(MORE_EXPORT_MESHLIB)
 	if meshlib_idx >= 0:
 		popup.set_item_disabled(meshlib_idx, CsgBlockoutMeshLibraryExport.selection_nodes().is_empty())
+	var no_frozen: bool = CsgBlockoutGltfRoundTrip.selected_frozen().is_empty()
+	for id: int in [MORE_EXPORT_GLTF, MORE_APPLY_GLTF]:
+		var gltf_idx: int = popup.get_item_index(id)
+		if gltf_idx >= 0:
+			popup.set_item_disabled(gltf_idx, no_frozen)
 
 func _on_tag_id_pressed(id: int) -> void:
 	var tag: StringName = CsgBlockoutTags.TAGS[id] if id < CsgBlockoutTags.TAGS.size() else &""
@@ -246,6 +255,10 @@ func _on_more_id_pressed(id: int) -> void:
 			CsgBlockoutTags.export_legend_with_dialog()
 		MORE_EXPORT_MESHLIB:
 			CsgBlockoutMeshLibraryExport.export_selection_with_dialog()
+		MORE_EXPORT_GLTF:
+			CsgBlockoutGltfRoundTrip.export_selection()
+		MORE_APPLY_GLTF:
+			CsgBlockoutGltfRoundTrip.apply_selection()
 		MORE_REPEATER_REFRESH:
 			_on_refresh_pressed()
 		MORE_REPEATER_BAKE:

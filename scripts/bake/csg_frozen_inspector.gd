@@ -2,7 +2,7 @@
 class_name CsgBlockoutFrozenInspector
 extends EditorInspectorPlugin
 ## Inspector panel for frozen blockout: bake options (collision type, lightmap UV2,
-## occluder, LODs), rebake in place, unfreeze.
+## occluder, LODs), rebake in place, unfreeze, and the glTF round trip.
 
 const COLLISION_KEYS: Dictionary = {
 	"auto": "COLLISION_AUTO",
@@ -84,10 +84,85 @@ static func _build_panel(frozen: MeshInstance3D) -> Control:
 	unfreeze.name = "Unfreeze"
 	unfreeze.text = CsgBlockoutI18n.t("UNFREEZE")
 	unfreeze.icon = load("res://addons/csg_blockout/res/icons/unfreeze.svg") as Texture2D
-	unfreeze.pressed.connect(func() -> void: CsgBlockoutFreeze.unfreeze([frozen]))
+	unfreeze.pressed.connect(func() -> void: CsgBlockoutGltfRoundTrip.unfreeze_with_confirm([frozen]))
 	buttons.add_child(unfreeze)
+	_add_round_trip(panel, frozen)
 	panel.add_child(HSeparator.new())
 	return panel
+
+## Export .glb / use the refined mesh, with a status line that follows re-imports.
+static func _add_round_trip(panel: VBoxContainer, frozen: MeshInstance3D) -> void:
+	var title: Label = Label.new()
+	title.text = CsgBlockoutI18n.t("GLTF_SECTION")
+	title.add_theme_color_override(&"font_color", Color(0.55, 0.85, 1.0))
+	panel.add_child(title)
+	var status: GltfStatus = GltfStatus.new()
+	status.name = "GltfStatus"
+	status.frozen = frozen
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.custom_minimum_size.x = 200.0
+	status.add_theme_color_override(&"font_color", Color(0.75, 0.75, 0.75))
+	panel.add_child(status)
+	var row: HBoxContainer = HBoxContainer.new()
+	panel.add_child(row)
+	var export_button: Button = Button.new()
+	export_button.name = "ExportGltf"
+	export_button.text = CsgBlockoutI18n.t("GLTF_EXPORT")
+	export_button.icon = CSGTopBlockoutBar.editor_icon(&"Save")
+	export_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	export_button.pressed.connect(func() -> void:
+		CsgBlockoutGltfRoundTrip.export_nodes([frozen])
+		status.refresh())
+	row.add_child(export_button)
+	var apply_button: Button = Button.new()
+	apply_button.name = "UseRefined"
+	apply_button.text = CsgBlockoutI18n.t("GLTF_APPLY")
+	apply_button.icon = CSGTopBlockoutBar.editor_icon(&"Reload")
+	apply_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apply_button.pressed.connect(func() -> void: CsgBlockoutGltfRoundTrip.apply_refined([frozen]))
+	row.add_child(apply_button)
+	var show_button: Button = Button.new()
+	show_button.name = "ShowGltf"
+	show_button.icon = CSGTopBlockoutBar.editor_icon(&"Folder")
+	show_button.tooltip_text = CsgBlockoutI18n.t("GLTF_SHOW_FILE")
+	show_button.pressed.connect(func() -> void:
+		var path: String = CsgBlockoutGltfRoundTrip.path_for(frozen)
+		if FileAccess.file_exists(path):
+			OS.shell_show_in_file_manager(ProjectSettings.globalize_path(path)))
+	row.add_child(show_button)
+	status.buttons = [apply_button, show_button]
+	status.refresh()
+
+## Status line that follows file system changes, so a .glb saved from a DCC tool
+## shows up as soon as Godot has re-imported it.
+class GltfStatus extends Label:
+	var frozen: MeshInstance3D
+	var buttons: Array[Button] = []
+
+	func _enter_tree() -> void:
+		var fs: EditorFileSystem = EditorInterface.get_resource_filesystem()
+		if not fs.filesystem_changed.is_connected(refresh):
+			fs.filesystem_changed.connect(refresh)
+		if not fs.resources_reimported.is_connected(_on_reimported):
+			fs.resources_reimported.connect(_on_reimported)
+
+	func _exit_tree() -> void:
+		var fs: EditorFileSystem = EditorInterface.get_resource_filesystem()
+		if fs.filesystem_changed.is_connected(refresh):
+			fs.filesystem_changed.disconnect(refresh)
+		if fs.resources_reimported.is_connected(_on_reimported):
+			fs.resources_reimported.disconnect(_on_reimported)
+
+	func _on_reimported(_files: PackedStringArray) -> void:
+		refresh()
+
+	func refresh() -> void:
+		if not is_instance_valid(frozen):
+			return
+		text = CsgBlockoutGltfRoundTrip.status_text(frozen)
+		var exists: bool = FileAccess.file_exists(CsgBlockoutGltfRoundTrip.path_for(frozen))
+		for b: Button in buttons:
+			b.disabled = not exists
 
 static func _row(grid: GridContainer, label_key: String, control: Control) -> void:
 	var label: Label = Label.new()

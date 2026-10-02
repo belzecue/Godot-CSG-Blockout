@@ -6,7 +6,7 @@ extends EditorExportPlugin
 ## the helper nodes that only make sense in the editor (rulers, player references).
 ## Disable with Project Settings > addons/csg_blockout/bake/strip_source_on_export.
 
-const STRIP_METAS: Array[StringName] = [&"_csg_blockout_source", &"_csg_blockout_shell", &"_csg_blockout_bake", &"_csg_blockout_home"]
+const STRIP_METAS: Array[StringName] = [&"_csg_blockout_source", &"_csg_blockout_shell", &"_csg_blockout_bake", &"_csg_blockout_home", &"_csg_blockout_gltf", &"_csg_blockout_refined"]
 
 func _get_name() -> String:
 	return "CSGBlockoutStripEditorData"

@@ -161,6 +161,9 @@ static func rebake(frozen_nodes: Array[MeshInstance3D], options: Variant = null)
 			_toast("%s: %s" % [frozen.name, w], EditorToaster.SEVERITY_WARNING)
 		action.set_property(frozen, &"mesh", baked["mesh"])
 		action.assign_meta(frozen, META_BAKE, opts)
+		# Back to the blockout mesh: a refined mesh from the glTF round trip is dropped.
+		if frozen.has_meta(CsgBlockoutGltfRoundTrip.META_REFINED):
+			action.assign_meta(frozen, CsgBlockoutGltfRoundTrip.META_REFINED, null)
 		for child: Node in frozen.get_children():
 			if child.has_meta(META_GENERATED):
 				action.remove_node(child)
@@ -232,9 +235,10 @@ static func _warn_external_references(root: Node, scene_root: Node) -> void:
 
 # --- unfreeze -----------------------------------------------------------------------
 
+## Asks first when a node uses a refined mesh from the glTF round trip.
 static func unfreeze_selection() -> void:
 	var targets: Dictionary = selection_targets()
-	unfreeze(targets["frozen"])
+	CsgBlockoutGltfRoundTrip.unfreeze_with_confirm(targets["frozen"])
 
 static func unfreeze(frozen_nodes: Array[MeshInstance3D]) -> void:
 	var scene_root: Node = EditorInterface.get_edited_scene_root()
@@ -276,8 +280,9 @@ static func _pack_shell(frozen: MeshInstance3D, scene_root: Node) -> PackedScene
 	var copy: MeshInstance3D = frozen.duplicate() as MeshInstance3D
 	_mirror_owners(frozen, copy, scene_root, copy)
 	copy.mesh = null
-	# Bake options stay on the shell so the next freeze reuses them.
-	for meta: StringName in [META_SOURCE]:
+	# Bake options and the glTF export record stay on the shell so the next freeze
+	# reuses them; the refined mesh doesn't survive unfreezing.
+	for meta: StringName in [META_SOURCE, CsgBlockoutGltfRoundTrip.META_REFINED]:
 		if copy.has_meta(meta):
 			copy.remove_meta(meta)
 	for child: Node in copy.get_children():
