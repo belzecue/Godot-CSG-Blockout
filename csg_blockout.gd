@@ -6,6 +6,7 @@ var config: CsgBlockoutConfig:
 var sidebar: CSGSideBlockoutBar
 var topbar: CSGTopBlockoutBar
 var ruler_gizmo_plugin: CSGRulerGizmoPlugin
+var player_ref_gizmo_plugin: CSGPlayerReferenceGizmoPlugin
 var tools: CsgBlockoutToolManager
 var _draw_tool: CsgBlockoutDrawTool
 var _opening_tool: CsgBlockoutOpeningTool
@@ -78,6 +79,7 @@ func _get_more_menu() -> Array[Dictionary]:
 		{"label": CsgBlockoutI18n.t("FREEZE"), "type": "action", "action_id": &"freeze"},
 		{"label": CsgBlockoutI18n.t("UNFREEZE"), "type": "action", "action_id": &"unfreeze"},
 		{"label": CsgBlockoutI18n.t("ARRAY_MENU_ITEM"), "type": "action", "action_id": &"array"},
+		{"label": CsgBlockoutI18n.t("CSGPlayerReference3D"), "type": "action", "action_id": &"add_player_ref"},
 		{"label": CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), "type": "action", "action_id": &"snap_to_grid"},
 	]
 
@@ -90,10 +92,13 @@ func _enter_tree() -> void:
 	add_custom_type("CSGSpreader3D", "CSGCombiner3D", preload("res://addons/csg_blockout/scripts/csg_spreader_3d.gd"), null)
 	add_custom_type("CSGStairs3D", "CSGPolygon3D", preload("res://addons/csg_blockout/scripts/csg_stairs_3d.gd"), preload("res://addons/csg_blockout/res/icons/stairs.svg"))
 	add_custom_type("CSGRuler3D", "Node3D", preload("res://addons/csg_blockout/scripts/csg_ruler_3d.gd"), preload("res://addons/csg_blockout/res/icons/ruler.svg"))
+	add_custom_type("CSGPlayerReference3D", "Node3D", preload("res://addons/csg_blockout/scripts/metrics/csg_player_reference_3d.gd"), null)
 
 	# Gizmo Plugin
 	ruler_gizmo_plugin = CSGRulerGizmoPlugin.new()
 	add_node_3d_gizmo_plugin(ruler_gizmo_plugin)
+	player_ref_gizmo_plugin = CSGPlayerReferenceGizmoPlugin.new()
+	add_node_3d_gizmo_plugin(player_ref_gizmo_plugin)
 
 	# Sidebar
 	var sidebar_scene: PackedScene = preload("res://addons/csg_blockout/scenes/csg_side_blockout_bar.tscn")
@@ -120,6 +125,7 @@ func _enter_tree() -> void:
 	tools = CsgBlockoutToolManager.new(self)
 	tools.add_passive(CsgBlockoutTransformHotkeys.new())
 	tools.add_passive(CsgBlockoutFaceDrag.new())
+	tools.add_passive(CsgBlockoutMeasureOverlay.new())
 	_draw_tool = CsgBlockoutDrawTool.new()
 	_opening_tool = CsgBlockoutOpeningTool.new()
 	tools.register_tool(&"draw", _draw_tool)
@@ -274,6 +280,12 @@ func _on_action_requested(action_id: StringName) -> void:
 			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.WINDOW)
 		&"snap_to_grid":
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
+		&"refresh_overlays":
+			update_overlays()
+		&"add_player_ref":
+			CsgBlockoutNodeFactory.create("CSGPlayerReference3D", _viewport_center_hit())
+		&"check_jump":
+			CsgBlockoutMeasureOverlay.check_jump_between_selection()
 		&"freeze":
 			await CsgBlockoutFreeze.freeze_selection()
 		&"unfreeze":
@@ -282,6 +294,14 @@ func _on_action_requested(action_id: StringName) -> void:
 			var array_tool: CsgBlockoutTool = tools.get_tool(&"array")
 			if not CsgBlockoutSelection.top_level_nodes().is_empty():
 				tools.activate(array_tool)
+
+## Surface under the center of the last used 3D viewport (or null).
+func _viewport_center_hit() -> CsgBlockoutRaycast.Hit:
+	var cam: Camera3D = tools.camera if tools.camera != null else EditorInterface.get_editor_viewport_3d(0).get_camera_3d()
+	if cam == null:
+		return null
+	var hit: CsgBlockoutRaycast.Hit = CsgBlockoutRaycast.cast(cam, cam.get_viewport().get_visible_rect().get_center())
+	return hit if hit.is_valid() else null
 
 ## Activates `tool` in `mode`, or turns it off when it is already active in that mode.
 func _toggle_tool(tool: CsgBlockoutTool, mode: int) -> void:
@@ -318,11 +338,15 @@ func _exit_tree() -> void:
 	if ruler_gizmo_plugin != null:
 		remove_node_3d_gizmo_plugin(ruler_gizmo_plugin)
 		ruler_gizmo_plugin = null
+	if player_ref_gizmo_plugin != null:
+		remove_node_3d_gizmo_plugin(player_ref_gizmo_plugin)
+		player_ref_gizmo_plugin = null
 
 	remove_custom_type("CSGRepeater3D")
 	remove_custom_type("CSGSpreader3D")
 	remove_custom_type("CSGStairs3D")
 	remove_custom_type("CSGRuler3D")
+	remove_custom_type("CSGPlayerReference3D")
 	undo_manager = null
 
 	_close_pie_menu()

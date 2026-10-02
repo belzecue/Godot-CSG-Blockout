@@ -32,6 +32,14 @@ const DEFAULT_WINDOW_SIZE: Vector2 = Vector2(1.2, 1.2)
 const DEFAULT_WINDOW_SILL: float = 0.9
 const DEFAULT_OPENING_FRAME: bool = false
 const DEFAULT_FRAME_WIDTH: float = 0.1
+const SETTING_CAPSULE_RADIUS: String = "addons/csg_blockout/player_metrics/capsule_radius"
+const SETTING_CROUCH_HEIGHT: String = "addons/csg_blockout/player_metrics/crouch_height"
+const SETTING_MAX_SLOPE: String = "addons/csg_blockout/player_metrics/max_slope_angle"
+const SETTING_WALK_SPEED: String = "addons/csg_blockout/player_metrics/walk_speed"
+const DEFAULT_CAPSULE_RADIUS: float = 0.35
+const DEFAULT_CROUCH_HEIGHT: float = 1.0
+const DEFAULT_MAX_SLOPE: float = 45.0
+const DEFAULT_WALK_SPEED: float = 5.0
 const SETTING_STRIP_SOURCE_ON_EXPORT: String = "addons/csg_blockout/bake/strip_source_on_export"
 const DEFAULT_STRIP_SOURCE_ON_EXPORT: bool = true
 const DEFAULT_ROOM_WALL_THICKNESS: float = 0.25
@@ -227,6 +235,12 @@ func _ensure_settings_exist() -> void:
 	_register(SETTING_OPENING_FRAME, DEFAULT_OPENING_FRAME, TYPE_BOOL)
 	_register(SETTING_FRAME_WIDTH, DEFAULT_FRAME_WIDTH, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,1.0,0.01,or_greater")
 	_register(SETTING_STRIP_SOURCE_ON_EXPORT, DEFAULT_STRIP_SOURCE_ON_EXPORT, TYPE_BOOL)
+	_register(SETTING_CAPSULE_RADIUS, DEFAULT_CAPSULE_RADIUS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.05,2.0,0.01,or_greater")
+	_register(SETTING_CROUCH_HEIGHT, DEFAULT_CROUCH_HEIGHT, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.1,5.0,0.05,or_greater")
+	_register(SETTING_MAX_SLOPE, DEFAULT_MAX_SLOPE, TYPE_FLOAT, PROPERTY_HINT_RANGE, "1.0,89.0,0.5")
+	_register(SETTING_WALK_SPEED, DEFAULT_WALK_SPEED, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.1,50.0,0.1,or_greater")
+	for path: String in [SETTING_CAPSULE_RADIUS, SETTING_CROUCH_HEIGHT, SETTING_MAX_SLOPE, SETTING_WALK_SPEED]:
+		ProjectSettings.set_as_basic(path, true)
 
 	if not ProjectSettings.settings_changed.is_connected(_on_project_settings_changed):
 		ProjectSettings.settings_changed.connect(_on_project_settings_changed)
@@ -277,6 +291,31 @@ func get_opening_frame() -> bool:
 
 func set_opening_frame(value: bool) -> void:
 	_set_setting(SETTING_OPENING_FRAME, value)
+
+func get_capsule_radius() -> float:
+	return get_positive_float(SETTING_CAPSULE_RADIUS, DEFAULT_CAPSULE_RADIUS)
+
+func get_crouch_height() -> float:
+	return get_positive_float(SETTING_CROUCH_HEIGHT, DEFAULT_CROUCH_HEIGHT)
+
+func get_max_slope_angle() -> float:
+	return clampf(get_positive_float(SETTING_MAX_SLOPE, DEFAULT_MAX_SLOPE), 1.0, 89.0)
+
+func get_walk_speed() -> float:
+	return get_positive_float(SETTING_WALK_SPEED, DEFAULT_WALK_SPEED)
+
+## Every player metric in one dictionary (shared by rulers, the player reference,
+## the validator and the Play From Here pawn).
+func get_player_metrics() -> Dictionary:
+	return {
+		"character_height": get_character_height(),
+		"capsule_radius": get_capsule_radius(),
+		"crouch_height": get_crouch_height(),
+		"single_jump_height": get_single_jump_height(),
+		"sprint_jump_distance": get_sprint_jump_distance(),
+		"max_slope_angle": get_max_slope_angle(),
+		"walk_speed": get_walk_speed(),
+	}
 
 func get_strip_source_on_export() -> bool:
 	return bool(_get_setting(SETTING_STRIP_SOURCE_ON_EXPORT, DEFAULT_STRIP_SOURCE_ON_EXPORT))

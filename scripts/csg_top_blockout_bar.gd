@@ -8,6 +8,7 @@ signal action_requested(action_id: StringName)
 
 const BASE_ICON_MAX_WIDTH: int = 16
 const MORE_SNAP_TO_GRID: int = 0
+const MORE_CHECK_JUMP: int = 1
 
 var _rulers_visible: bool = true
 var _grid_option: OptionButton
@@ -15,6 +16,7 @@ var _snap_button: Button
 var _more_button: MenuButton
 var _tool_buttons: Array[Button] = []
 var _freeze_button: Button
+var _dimensions_button: Button
 var _unfreeze_button: Button
 
 func _enter_tree() -> void:
@@ -93,6 +95,25 @@ func _build_blockout_tools() -> void:
 	_add_tool_button(box, &"opening_window", load("res://addons/csg_blockout/res/icons/window.svg") as Texture2D, "OPENING_WINDOW_TOOLTIP")
 
 	box.add_child(VSeparator.new())
+	_dimensions_button = Button.new()
+	_dimensions_button.name = "DimensionsToggle"
+	_dimensions_button.flat = true
+	_dimensions_button.toggle_mode = true
+	_dimensions_button.text = "DIMENSIONS"
+	_dimensions_button.icon = editor_icon(&"Ruler")
+	_dimensions_button.set_meta("i18n_text_key", "DIMENSIONS")
+	_dimensions_button.set_meta("i18n_tooltip_key", "DIMENSIONS_TOOLTIP")
+	CsgBlockoutMeasureOverlay.load_state()
+	_dimensions_button.button_pressed = CsgBlockoutMeasureOverlay.enabled
+	_dimensions_button.toggled.connect(func(on: bool) -> void:
+		CsgBlockoutMeasureOverlay.set_enabled(on)
+		action_requested.emit(&"refresh_overlays"))
+	box.add_child(_dimensions_button)
+	var player_btn: Button = _add_action_button(box, &"add_player_ref", editor_icon(&"CharacterBody3D"), "", "PLAYER_REF_TOOLTIP")
+	player_btn.text = ""
+	player_btn.remove_meta("i18n_text_key")
+
+	box.add_child(VSeparator.new())
 	_freeze_button = _add_action_button(box, &"freeze", load("res://addons/csg_blockout/res/icons/freeze.svg") as Texture2D, "FREEZE", "FREEZE_TOOLTIP")
 	_unfreeze_button = _add_action_button(box, &"unfreeze", load("res://addons/csg_blockout/res/icons/unfreeze.svg") as Texture2D, "UNFREEZE", "UNFREEZE_TOOLTIP")
 
@@ -157,6 +178,7 @@ func _rebuild_more_menu() -> void:
 	var popup: PopupMenu = _more_button.get_popup()
 	popup.clear()
 	popup.add_item(CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), MORE_SNAP_TO_GRID)
+	popup.add_item(CsgBlockoutI18n.t("CHECK_JUMP_MENU"), MORE_CHECK_JUMP)
 
 func _sync_grid_controls() -> void:
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
@@ -177,6 +199,8 @@ func _on_more_id_pressed(id: int) -> void:
 	match id:
 		MORE_SNAP_TO_GRID:
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
+		MORE_CHECK_JUMP:
+			CsgBlockoutMeasureOverlay.check_jump_between_selection()
 
 func _apply_editor_scale() -> void:
 	var ed_scale: float = 1.0

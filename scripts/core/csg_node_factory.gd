@@ -18,6 +18,7 @@ const BASE_NAMES: Dictionary = {
 	"CSGCombiner3D": "Group",
 	"CSGStairs3D": "Stairs",
 	"CSGRuler3D": "Ruler",
+	"CSGPlayerReference3D": "PlayerRef",
 	"CSGRepeater3D": "Repeater",
 	"CSGSpreader3D": "Spreader",
 }
@@ -28,6 +29,8 @@ static func instantiate(type_name: String) -> Node3D:
 			return CSGStairs3D.new()
 		"CSGRuler3D":
 			return CSGRuler3D.new()
+		"CSGPlayerReference3D":
+			return CSGPlayerReference3D.new()
 		"CSGRepeater3D":
 			return CSGRepeater3D.new()
 		"CSGSpreader3D":
@@ -85,7 +88,11 @@ static func resolve_parent(node: Node3D) -> Dictionary:
 	if first == null:
 		return {"parent": root, "index": -1, "anchor": null}
 	if not (node is CSGShape3D):
-		return {"parent": first, "index": -1, "anchor": first}
+		# Helpers (rulers, player references) never go inside a CSG tree.
+		var holder: Node = first
+		while holder is CSGShape3D and holder != root:
+			holder = holder.get_parent()
+		return {"parent": holder if holder != null else root, "index": -1, "anchor": first}
 	if first is CSGCombiner3D:
 		return {"parent": first, "index": -1, "anchor": first}
 	if first is CSGShape3D and first != root and first.get_parent() != null:
