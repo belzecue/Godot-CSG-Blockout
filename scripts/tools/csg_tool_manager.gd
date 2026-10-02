@@ -15,6 +15,7 @@ const BASE_PADDING: float = 6.0
 var plugin: EditorPlugin
 var active: CsgBlockoutTool
 var passives: Array[CsgBlockoutTool] = []
+var _modal_tools: Dictionary = {}
 ## Camera and mouse position of the viewport that received the last event.
 var camera: Camera3D
 var mouse_pos: Vector2 = Vector2.ZERO
@@ -29,6 +30,14 @@ func _init(p_plugin: EditorPlugin) -> void:
 func add_passive(tool: CsgBlockoutTool) -> void:
 	tool.manager = self
 	passives.append(tool)
+
+## Registers a modal tool so passive tools (hotkeys) can start it by id.
+func register_tool(tool_id: StringName, tool: CsgBlockoutTool) -> void:
+	tool.manager = self
+	_modal_tools[tool_id] = tool
+
+func get_tool(tool_id: StringName) -> CsgBlockoutTool:
+	return _modal_tools.get(tool_id)
 
 func activate(tool: CsgBlockoutTool) -> void:
 	if active == tool:

@@ -71,6 +71,28 @@ const STRINGS: Dictionary = {
 		"zh": "推拉面", "en": "Push/Pull Face", "ja": "面を押し出し/引き込み", "ko": "면 밀기/당기기",
 		"es": "Empujar/tirar cara", "pt": "Empurrar/puxar face", "ru": "Сдвинуть грань",
 	},
+	"ARRAY_ACTION": {
+		"zh": "沿轴复制", "en": "Duplicate Along Axis", "ja": "軸に沿って複製", "ko": "축을 따라 복제",
+		"es": "Duplicar a lo largo de un eje", "pt": "Duplicar ao longo do eixo", "ru": "Дублировать вдоль оси",
+	},
+	"ARRAY_MENU_ITEM": {
+		"zh": "沿轴复制 (Ctrl+Shift+D)", "en": "Duplicate Along Axis (Ctrl+Shift+D)", "ja": "軸に沿って複製 (Ctrl+Shift+D)", "ko": "축을 따라 복제 (Ctrl+Shift+D)",
+		"es": "Duplicar a lo largo de un eje (Ctrl+Mayús+D)", "pt": "Duplicar ao longo do eixo (Ctrl+Shift+D)", "ru": "Дублировать вдоль оси (Ctrl+Shift+D)",
+	},
+	"ARRAY_LABEL": {
+		"zh": "×%d · 间距 %s m · 轴 %s", "en": "×%d · step %s m · axis %s", "ja": "×%d · 間隔 %s m · 軸 %s", "ko": "×%d · 간격 %s m · 축 %s",
+		"es": "×%d · paso %s m · eje %s", "pt": "×%d · passo %s m · eixo %s", "ru": "×%d · шаг %s м · ось %s",
+	},
+	"HINT_ARRAY": {
+		"zh": "沿轴移动鼠标 · 滚轮调间隔 · X/Y/Z 锁轴 · 点击生成 · Esc 取消", "en": "Move along an axis · Wheel: gap · X/Y/Z: lock axis · Click to create · Esc to cancel",
+		"ja": "軸に沿ってマウスを動かす · ホイール：間隔 · X/Y/Z：軸固定 · クリックで作成 · Esc でキャンセル", "ko": "축을 따라 마우스 이동 · 휠: 간격 · X/Y/Z: 축 고정 · 클릭해서 생성 · Esc로 취소",
+		"es": "Mueve a lo largo de un eje · Rueda: separación · X/Y/Z: fijar eje · Clic para crear · Esc para cancelar", "pt": "Mova ao longo de um eixo · Roda: espaçamento · X/Y/Z: travar eixo · Clique para criar · Esc para cancelar",
+		"ru": "Ведите мышь вдоль оси · Колесо: зазор · X/Y/Z: зафиксировать ось · Щелчок — создать · Esc — отмена",
+	},
+	"HINT_ARRAY_PICK_AXIS": {
+		"zh": "移动鼠标选择方向", "en": "Move the mouse to pick a direction", "ja": "マウスを動かして方向を選ぶ", "ko": "마우스를 움직여 방향 선택",
+		"es": "Mueve el ratón para elegir la dirección", "pt": "Mova o mouse para escolher a direção", "ru": "Двигайте мышь, чтобы выбрать направление",
+	},
 	"DOOR": {
 		"zh": "门", "en": "Door", "ja": "ドア", "ko": "문",
 		"es": "Puerta", "pt": "Porta", "ru": "Дверь",

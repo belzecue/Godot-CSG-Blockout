@@ -72,6 +72,7 @@ func _get_pie_menu_items() -> Array[Dictionary]:
 
 func _get_more_menu() -> Array[Dictionary]:
 	return [
+		{"label": CsgBlockoutI18n.t("ARRAY_MENU_ITEM"), "type": "action", "action_id": &"array"},
 		{"label": CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), "type": "action", "action_id": &"snap_to_grid"},
 	]
 
@@ -109,6 +110,9 @@ func _enter_tree() -> void:
 	tools.add_passive(CsgBlockoutFaceDrag.new())
 	_draw_tool = CsgBlockoutDrawTool.new()
 	_opening_tool = CsgBlockoutOpeningTool.new()
+	tools.register_tool(&"draw", _draw_tool)
+	tools.register_tool(&"opening", _opening_tool)
+	tools.register_tool(&"array", CsgBlockoutArrayTool.new())
 	tools.active_tool_changed.connect(topbar.set_active_tool)
 	topbar.action_requested.connect(_on_action_requested)
 	set_input_event_forwarding_always_enabled()
@@ -253,6 +257,10 @@ func _on_action_requested(action_id: StringName) -> void:
 			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.WINDOW)
 		&"snap_to_grid":
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
+		&"array":
+			var array_tool: CsgBlockoutTool = tools.get_tool(&"array")
+			if not CsgBlockoutSelection.top_level_nodes().is_empty():
+				tools.activate(array_tool)
 
 ## Activates `tool` in `mode`, or turns it off when it is already active in that mode.
 func _toggle_tool(tool: CsgBlockoutTool, mode: int) -> void:

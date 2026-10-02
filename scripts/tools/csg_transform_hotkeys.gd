@@ -31,6 +31,12 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 		return PASS
 	if not CsgBlockoutSelection.has_blockout_node():
 		return PASS
+	if not key.echo and CsgBlockoutShortcuts.matches("array_duplicate", key):
+		var array_tool: CsgBlockoutTool = manager.get_tool(&"array")
+		if array_tool != null and not CsgBlockoutSelection.top_level_nodes().is_empty():
+			manager.activate(array_tool)
+			return STOP
+		return PASS
 	var step: float = grid.size / FINE_DIVISOR if key.shift_pressed else grid.size
 	var dirs: Dictionary = _view_axes(camera)
 	if CsgBlockoutShortcuts.matches("nudge_forward", key, true):

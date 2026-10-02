@@ -31,10 +31,11 @@ static func own_subtree(node: Node, scene_owner: Node) -> void:
 	for child: Node in node.get_children():
 		own_subtree(child, scene_owner)
 
-## Gives `copy` the same ownership layout as `original` (owned nodes stay owned,
-## generated preview children of Repeater/Spreader stay unowned).
+## Gives `copy` the same ownership layout as `original`: nodes the scene owns stay
+## owned, generated preview children (Repeater/Spreader) stay unowned, and nodes
+## inside an instanced sub-scene keep the owner duplicate() gave them.
 static func own_like(original: Node, copy: Node, scene_owner: Node) -> void:
-	if original.owner != null:
+	if original.owner == scene_owner:
 		copy.owner = scene_owner
 	var count: int = mini(original.get_child_count(), copy.get_child_count())
 	for i: int in count:
