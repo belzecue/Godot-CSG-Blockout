@@ -13,14 +13,14 @@
   </p>
 
   <p>
-    <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.7%2B-478cbf?style=flat-square&logo=godotengine&logoColor=white" alt="Godot 引擎" /></a>
+    <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.6%2B-478cbf?style=flat-square&logo=godotengine&logoColor=white" alt="Godot 引擎" /></a>
     <a href="https://store.godotengine.org/asset/qwqzhanqwq/csg-blockout/"><img src="https://img.shields.io/badge/AssetLib-CSG__Blockout-blueviolet?style=flat-square" alt="Godot AssetLib" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-success?style=flat-square" alt="开源协议: MIT" /></a>
   </p>
 
   <p>
     <strong>做关卡原型，不是做建模。</strong><br />
-    在 Godot 4.7 里用原生 CSG 节点搭白盒：没有私有格式，随时可改，随时可退。
+    在 Godot 4.6+ 里用原生 CSG 节点搭白盒：没有私有格式，随时可改，随时可退。
   </p>
 
   <!-- 首屏演示位：15 秒动图，从空场景到一个带门洞的房间。录好后放在这里，例如
@@ -45,7 +45,7 @@
 ## 安装指南
 
 ### 途径 1：Godot AssetLib 官方资产库（推荐）
-1. 在 Godot 4.7 编辑器顶部点击 **AssetLib (资产库)** 选项卡。
+1. 在 Godot（4.6 及以上）编辑器顶部点击 **AssetLib (资产库)** 选项卡。
 2. 搜索 `CSG Blockout`，点击下载并安装到项目中。
 3. 也可通过网页版资产库直达：[Godot AssetLib - CSG_Blockout](https://store.godotengine.org/asset/qwqzhanqwq/csg-blockout/)。
 
@@ -116,11 +116,11 @@ git clone https://github.com/qwqzhanqwq/Godot-CSG-Blockout.git addons/csg_blocko
 
 ## 与 CSG Toolkit 的关系
 
-本项目源自 **LuckyTepot** 的开源插件 [CSG Toolkit](https://godotengine.org/asset-library/asset/3057)，它证明了在 Godot 视口内直接搭 CSG 的价值。`CSG_Blockout` 由 [qwqzhanqwq](https://github.com/qwqzhanqwq) 面向 Godot 4.7 从头重写：
+本项目源自 **LuckyTepot** 的开源插件 [CSG Toolkit](https://godotengine.org/asset-library/asset/3057)，它证明了在 Godot 视口内直接搭 CSG 的价值。`CSG_Blockout` 由 [qwqzhanqwq](https://github.com/qwqzhanqwq) 面向 Godot 4.6+ 从头重写：
 
 | | 原版 CSG Toolkit | CSG_Blockout |
 | :--- | :--- | :--- |
-| **引擎** | 早期 Godot 4.x | Godot 4.7+，GDScript 全静态类型 |
+| **引擎** | 早期 Godot 4.x | Godot 4.6+，GDScript 全静态类型 |
 | **创建形状** | 视口侧边栏 | 光标处饼菜单 + 侧边栏 |
 | **关卡设计辅助** | — | 参数化楼梯/坡道、带跳跃可达性判定的关卡标尺 |
 | **材质** | 默认材质 | 世界对齐网格材质，批量赋予 |

@@ -1,12 +1,12 @@
 @tool
 class_name CsgBlockoutCompat
 extends RefCounted
-## Every engine-version-sensitive call goes through here, so lowering the minimum
-## Godot version only touches this file.
+## The plugin supports Godot 4.6+. Every engine-version-sensitive call goes through
+## here; the pre-4.6 branches below are kept for a separate older-versions port.
 ##   EditorDock / add_dock ............ 4.6+ (add_control_to_dock before that)
 ##   EditorSettings.add_shortcut ...... 4.6+ (see CsgBlockoutShortcuts fallback)
 ##   TriangleMesh.intersect_ray ....... 4.5+
-##   FileDialog.overwrite_warning_enabled  4.7+ (EditorFileDialog.disable_overwrite_warning before)
+##   FileDialog.overwrite_warning_enabled  4.6+ (EditorFileDialog.disable_overwrite_warning before)
 
 static func has_editor_dock() -> bool:
 	return ClassDB.class_exists(&"EditorDock")

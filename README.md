@@ -13,14 +13,14 @@
   </p>
 
   <p>
-    <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.7%2B-478cbf?style=flat-square&logo=godotengine&logoColor=white" alt="Godot Engine" /></a>
+    <a href="https://godotengine.org"><img src="https://img.shields.io/badge/Godot-4.6%2B-478cbf?style=flat-square&logo=godotengine&logoColor=white" alt="Godot Engine" /></a>
     <a href="https://store.godotengine.org/asset/qwqzhanqwq/csg-blockout/"><img src="https://img.shields.io/badge/AssetLib-CSG__Blockout-blueviolet?style=flat-square" alt="Godot AssetLib" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-success?style=flat-square" alt="License: MIT" /></a>
   </p>
 
   <p>
     <strong>Level prototyping, not modeling.</strong><br />
-    Block out levels in Godot 4.7 with native CSG nodes: nothing proprietary, always editable, and nothing to migrate away from.
+    Block out levels in Godot 4.6+ with native CSG nodes: nothing proprietary, always editable, and nothing to migrate away from.
   </p>
 
   <!-- HERO DEMO: 15-second clip, empty scene → a room with a doorway. Put it here once recorded, e.g.
@@ -45,7 +45,7 @@ That also means you can walk away from the plugin at any time:
 ## Installation
 
 ### Option 1: Godot AssetLib (Recommended)
-1. Open Godot 4.7 and navigate to the **AssetLib** tab at the top of the editor.
+1. Open Godot (4.6 or later) and navigate to the **AssetLib** tab at the top of the editor.
 2. Search for `CSG Blockout`, download, and install it into your project.
 3. Or view it directly on the web: [Godot AssetLib - CSG_Blockout](https://store.godotengine.org/asset/qwqzhanqwq/csg-blockout/).
 
@@ -116,11 +116,11 @@ Bug reports, feature requests, and pull requests are welcome. Please read [CONTR
 
 ## Relationship to CSG Toolkit
 
-This plugin originated from the open-source [CSG Toolkit](https://godotengine.org/asset-library/asset/3057) by **LuckyTepot**, which proved the value of in-viewport CSG authoring. `CSG_Blockout` is a ground-up rewrite by [qwqzhanqwq](https://github.com/qwqzhanqwq) for Godot 4.7:
+This plugin originated from the open-source [CSG Toolkit](https://godotengine.org/asset-library/asset/3057) by **LuckyTepot**, which proved the value of in-viewport CSG authoring. `CSG_Blockout` is a ground-up rewrite by [qwqzhanqwq](https://github.com/qwqzhanqwq) for Godot 4.6+:
 
 | | Original CSG Toolkit | CSG_Blockout |
 | :--- | :--- | :--- |
-| **Engine** | Early Godot 4.x | Godot 4.7+, fully statically typed GDScript |
+| **Engine** | Early Godot 4.x | Godot 4.6+, fully statically typed GDScript |
 | **Creating shapes** | Viewport sidebar | Pie menu at the cursor + sidebar |
 | **Level design aids** | — | Parametric stairs/ramps, level ruler with jump reachability |
 | **Materials** | Default materials | World-aligned grid materials, batch apply |

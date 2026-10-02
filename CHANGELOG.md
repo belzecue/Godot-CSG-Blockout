@@ -29,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Non-manifold warning** for `CSGMesh3D`: since Godot 4.4, CSG runs on the Manifold library and quietly gives empty or broken results for meshes that aren't closed. The Inspector now counts open edges, edges shared by more than two faces and flipped faces, can mark them in the viewport, and the outliner flags such meshes.
 
 ### Changed
+- Supports Godot 4.6 and later (previously 4.7 and later).
 - Shapes created from the pie menu are placed on the surface under the cursor (resting on it, or half-embedded for subtraction), aligned to the surface normal and snapped to the grid. Sidebar creation keeps the selection's height and snaps horizontally.
 - The pie menu has six sectors: Union, Intersection and Subtraction stay where they were, and the gaps hold Draw (box, room), Openings (door, window) and More.
 - Switching the operation from the pie menu now applies to every selected CSG shape, as one undo step.
