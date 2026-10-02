@@ -22,6 +22,8 @@ const DEFAULTS: Dictionary = {
 	"rotate_ccw": [KEY_COMMA, false, false, false, "Rotate -15° (Shift: 90°)"],
 	"rotate_cw": [KEY_PERIOD, false, false, false, "Rotate +15° (Shift: 90°)"],
 	"array_duplicate": [KEY_D, true, true, false, "Duplicate Along Axis"],
+	# Unbound by default; users can assign one in Editor Settings > Shortcuts.
+	"play_here": [KEY_NONE, false, false, false, "Play From Here (at cursor)"],
 }
 
 ## Shortcuts whose Shift variant is also accepted (Shift changes the step size).
@@ -36,14 +38,15 @@ static func register_all() -> void:
 		if settings.has_shortcut(path):
 			continue
 		var spec: Array = DEFAULTS[id]
-		var ev: InputEventKey = InputEventKey.new()
-		ev.keycode = spec[0]
-		ev.ctrl_pressed = spec[1]
-		ev.shift_pressed = spec[2]
-		ev.alt_pressed = spec[3]
 		var sc: Shortcut = Shortcut.new()
 		sc.resource_name = spec[4]
-		sc.events = [ev]
+		if spec[0] != KEY_NONE:
+			var ev: InputEventKey = InputEventKey.new()
+			ev.keycode = spec[0]
+			ev.ctrl_pressed = spec[1]
+			ev.shift_pressed = spec[2]
+			ev.alt_pressed = spec[3]
+			sc.events = [ev]
 		settings.add_shortcut(path, sc)
 
 ## True when `event` triggers shortcut `id`. With allow_shift, Shift+key also counts.
@@ -62,7 +65,7 @@ static func matches(id: String, event: InputEvent, allow_shift: bool = false) ->
 		return false
 	# Fallback for engines without editor shortcut registration.
 	var spec: Array = DEFAULTS.get(id, [])
-	if spec.is_empty():
+	if spec.is_empty() or spec[0] == KEY_NONE:
 		return false
 	var k: InputEventKey = event as InputEventKey
 	var shift_ok: bool = k.shift_pressed == spec[2] or (allow_shift and not spec[2])

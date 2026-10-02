@@ -16,7 +16,7 @@ const COLORS: Dictionary = {
 }
 
 static func material_for(tag: StringName) -> Material:
-	var base: String = CsgBlockout.csg_plugin_path if not CsgBlockout.csg_plugin_path.is_empty() else "res://addons/csg_blockout"
+	var base: String = CsgBlockoutConfig.plugin_path if not CsgBlockoutConfig.plugin_path.is_empty() else "res://addons/csg_blockout"
 	var path: String = base.path_join("res/materials/mat_tag_%s.tres" % tag)
 	return load(path) as Material if ResourceLoader.exists(path) else null
 

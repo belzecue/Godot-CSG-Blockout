@@ -3,6 +3,9 @@ extends RefCounted
 class_name CsgBlockoutConfig
 
 static var _instance: CsgBlockoutConfig
+## Install folder of the addon, set by the editor plugin. Kept here (not read from the
+## plugin class) so this script also compiles in exported games.
+static var plugin_path: String = ""
 
 static func get_config() -> CsgBlockoutConfig:
 	if _instance == null:
@@ -39,7 +42,7 @@ const SETTING_WALK_SPEED: String = "addons/csg_blockout/player_metrics/walk_spee
 const DEFAULT_CAPSULE_RADIUS: float = 0.35
 const DEFAULT_CROUCH_HEIGHT: float = 1.0
 const DEFAULT_MAX_SLOPE: float = 45.0
-const DEFAULT_WALK_SPEED: float = 5.0
+const DEFAULT_WALK_SPEED: float = 3.5
 const SETTING_STRIP_SOURCE_ON_EXPORT: String = "addons/csg_blockout/bake/strip_source_on_export"
 const DEFAULT_STRIP_SOURCE_ON_EXPORT: bool = true
 const DEFAULT_ROOM_WALL_THICKNESS: float = 0.25
@@ -339,8 +342,8 @@ func get_preset_material(preset: MaterialPreset) -> Material:
 		"res://addons/csg_blockout/res/materials/" + file_name,
 		"res://res/materials/" + file_name
 	]
-	if not CsgBlockout.csg_plugin_path.is_empty():
-		paths.push_front(CsgBlockout.csg_plugin_path.path_join("res/materials").path_join(file_name))
+	if not plugin_path.is_empty():
+		paths.push_front(plugin_path.path_join("res/materials").path_join(file_name))
 		
 	for p in paths:
 		if ResourceLoader.exists(p):

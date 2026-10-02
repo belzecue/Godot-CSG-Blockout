@@ -511,10 +511,11 @@ static func get_locale() -> String:
 			return _normalize_locale(override_lang)
 			
 	# 1. Safely check EditorInterface editor settings in editor hint
-	if Engine.is_editor_hint():
-		var editor_settings: EditorSettings = EditorInterface.get_editor_settings()
+	# Reached dynamically so this script still compiles in exported games.
+	if Engine.is_editor_hint() and Engine.has_singleton(&"EditorInterface"):
+		var editor_settings: Object = Engine.get_singleton(&"EditorInterface").call(&"get_editor_settings")
 		if editor_settings != null:
-			var lang_setting: Variant = editor_settings.get_setting("interface/editor/editor_language")
+			var lang_setting: Variant = editor_settings.call(&"get_setting", "interface/editor/editor_language")
 			if lang_setting != null:
 				var s := String(lang_setting).strip_edges()
 				if not s.is_empty() and s != "default" and s != "auto":

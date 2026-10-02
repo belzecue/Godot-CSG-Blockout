@@ -570,16 +570,18 @@ func bake_instances() -> void:
 	if baked.is_empty():
 		return
 
-	if Engine.is_editor_hint() and CsgBlockout.undo_manager:
-		var um: EditorUndoRedoManager = CsgBlockout.undo_manager
-		um.create_action(CsgBlockoutI18n.t("BAKE"))
+	# Editor classes are reached dynamically: this script also runs in exported games,
+	# where EditorInterface / EditorUndoRedoManager don't exist.
+	var um: Object = _editor_undo_redo()
+	if um != null:
+		um.call(&"create_action", CsgBlockoutI18n.t("BAKE"))
 		for node in baked:
-			um.add_undo_reference(node)
-			um.add_do_property(node, "owner", target_owner)
-			um.add_undo_property(node, "owner", node.owner)
-		um.add_do_method(self, "_bake_clear_meta", baked)
-		um.add_undo_method(self, "_bake_restore_meta", baked)
-		um.commit_action()
+			um.call(&"add_undo_reference", node)
+			um.call(&"add_do_property", node, "owner", target_owner)
+			um.call(&"add_undo_property", node, "owner", node.owner)
+		um.call(&"add_do_method", self, "_bake_clear_meta", baked)
+		um.call(&"add_undo_method", self, "_bake_restore_meta", baked)
+		um.call(&"commit_action")
 	else:
 		for node in baked:
 			node.set_owner(target_owner)
@@ -594,3 +596,9 @@ func _bake_restore_meta(nodes: Array[Node]) -> void:
 	for node in nodes:
 		if is_instance_valid(node):
 			node.set_meta(REPEATER_NODE_META, true)
+
+## The editor's undo manager, or null outside the editor.
+func _editor_undo_redo() -> Object:
+	if not Engine.is_editor_hint() or not Engine.has_singleton(&"EditorInterface"):
+		return null
+	return Engine.get_singleton(&"EditorInterface").call(&"get_editor_undo_redo")

@@ -16,6 +16,9 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 	if not (event is InputEventKey) or not event.is_pressed():
 		return PASS
 	var key: InputEventKey = event as InputEventKey
+	if not key.echo and manager.active == null and CsgBlockoutShortcuts.matches("play_here", key):
+		CsgBlockoutPlayHere.launch(CsgBlockoutPlayHere.spawn_for(camera, manager.ray_pos(manager.mouse_pos)))
+		return STOP
 	var context: bool = manager.active != null or CsgBlockoutSelection.has_blockout_node()
 	if not context:
 		return PASS

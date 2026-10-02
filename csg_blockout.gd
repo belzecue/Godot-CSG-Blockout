@@ -80,11 +80,13 @@ func _get_more_menu() -> Array[Dictionary]:
 		{"label": CsgBlockoutI18n.t("UNFREEZE"), "type": "action", "action_id": &"unfreeze"},
 		{"label": CsgBlockoutI18n.t("ARRAY_MENU_ITEM"), "type": "action", "action_id": &"array"},
 		{"label": CsgBlockoutI18n.t("CSGPlayerReference3D"), "type": "action", "action_id": &"add_player_ref"},
+		{"label": CsgBlockoutI18n.t("PLAY_HERE"), "type": "action", "action_id": &"play_here_cursor"},
 		{"label": CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), "type": "action", "action_id": &"snap_to_grid"},
 	]
 
 func _enter_tree() -> void:
 	csg_plugin_path = get_script().get_path().get_base_dir()
+	CsgBlockoutConfig.plugin_path = csg_plugin_path
 	undo_manager = get_undo_redo()
 
 	# Custom Nodes
@@ -288,10 +290,24 @@ func _on_action_requested(action_id: StringName) -> void:
 			CsgBlockoutNodeFactory.create("CSGPlayerReference3D", _viewport_center_hit())
 		&"check_jump":
 			CsgBlockoutMeasureOverlay.check_jump_between_selection()
+		&"play_here_cursor":
+			# From the pie menu: spawn where the menu was opened.
+			if is_instance_valid(_pie_camera):
+				CsgBlockoutPlayHere.launch(CsgBlockoutPlayHere.spawn_for(_pie_camera, tools.ray_pos(_pie_screen_pos)))
+		&"play_here":
+			var cam: Camera3D = tools.camera if tools.camera != null else EditorInterface.get_editor_viewport_3d(0).get_camera_3d()
+			if cam != null:
+				CsgBlockoutPlayHere.launch(CsgBlockoutPlayHere.spawn_for(cam, cam.get_viewport().get_visible_rect().get_center()))
 		&"validate":
 			CsgBlockoutValidator.run()
 			if outliner != null:
 				outliner.show_checks()
+		&"freeze_toggle":
+			# Unfreeze when frozen nodes are selected, otherwise freeze the CSG.
+			if not (CsgBlockoutFreeze.selection_targets()["frozen"] as Array).is_empty():
+				CsgBlockoutFreeze.unfreeze_selection()
+			else:
+				await CsgBlockoutFreeze.freeze_selection()
 		&"freeze":
 			await CsgBlockoutFreeze.freeze_selection()
 		&"unfreeze":

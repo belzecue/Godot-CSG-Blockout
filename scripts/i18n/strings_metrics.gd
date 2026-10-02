@@ -126,4 +126,30 @@ const STRINGS: Dictionary = {
 		"zh": "图例已保存到 %s", "en": "Legend saved to %s", "ja": "凡例を %s に保存しました", "ko": "범례를 %s에 저장했습니다",
 		"es": "Leyenda guardada en %s", "pt": "Legenda salva em %s", "ru": "Легенда сохранена в %s",
 	},
+	"PLAY_HERE": {
+		"zh": "从这里试玩", "en": "Play From Here", "ja": "ここからプレイ", "ko": "여기서 플레이",
+		"es": "Jugar desde aquí", "pt": "Jogar daqui", "ru": "Играть отсюда",
+	},
+	"PLAY_HERE_TOOLTIP": {
+		"zh": "从这里试玩：在视口中心（快捷键时为光标处）放一个按角色参数行动的测试小人并运行当前场景",
+		"en": "Play From Here: run the current scene with a test character at the viewport center (at the cursor when using the shortcut), moving with the player metrics",
+		"ja": "ここからプレイ：ビューポート中央（ショートカット時はカーソル位置）にプレイヤー設定どおりに動くテストキャラを置いて現在のシーンを実行",
+		"ko": "여기서 플레이: 뷰포트 중앙(단축키 사용 시 커서 위치)에 플레이어 설정대로 움직이는 테스트 캐릭터를 두고 현재 씬 실행",
+		"es": "Jugar desde aquí: ejecuta la escena actual con un personaje de prueba en el centro del viewport (en el cursor con el atajo) que se mueve con las métricas del jugador",
+		"pt": "Jogar daqui: executa a cena atual com um personagem de teste no centro da viewport (no cursor ao usar o atalho), com as métricas do jogador",
+		"ru": "Играть отсюда: запустить текущую сцену с тестовым персонажем в центре вьюпорта (под курсором при горячей клавише) с параметрами игрока",
+	},
+	"WARN_PLAY_HERE_SAVE": {
+		"zh": "请先保存场景，再从这里试玩", "en": "Save the scene before using Play From Here", "ja": "「ここからプレイ」の前にシーンを保存してください", "ko": "여기서 플레이 전에 씬을 저장하세요",
+		"es": "Guarda la escena antes de usar Jugar desde aquí", "pt": "Salve a cena antes de usar Jogar daqui", "ru": "Сохраните сцену перед запуском «Играть отсюда»",
+	},
+	"PLAY_HERE_HUD": {
+		"zh": "WASD 移动 · 空格 跳 · Shift 冲刺 · Ctrl 蹲 · R 回到起点 · Esc 鼠标 · F8 结束",
+		"en": "WASD move · Space jump · Shift sprint · Ctrl crouch · R respawn · Esc mouse · F8 stop",
+		"ja": "WASD 移動 · Space ジャンプ · Shift ダッシュ · Ctrl しゃがみ · R 開始地点へ · Esc マウス · F8 終了",
+		"ko": "WASD 이동 · Space 점프 · Shift 질주 · Ctrl 웅크리기 · R 시작 지점 · Esc 마우스 · F8 종료",
+		"es": "WASD mover · Espacio saltar · Mayús correr · Ctrl agacharse · R reaparecer · Esc ratón · F8 parar",
+		"pt": "WASD mover · Espaço pular · Shift correr · Ctrl agachar · R voltar ao início · Esc mouse · F8 parar",
+		"ru": "WASD ходьба · Пробел прыжок · Shift бег · Ctrl присесть · R к старту · Esc мышь · F8 стоп",
+	},
 }
