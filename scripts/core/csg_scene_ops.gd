@@ -79,6 +79,19 @@ class Action:
 		_ops.append({"kind": "prop", "obj": obj, "prop": property, "new": value, "old": obj.get(property)})
 		return self
 
+	## Like set_property(), but with an explicit undo value (for chained changes queued
+	## in the same action, e.g. renaming through a temporary name).
+	func set_property_from(obj: Object, property: StringName, old_value: Variant, value: Variant) -> Action:
+		_ops.append({"kind": "prop", "obj": obj, "prop": property, "new": value, "old": old_value})
+		return self
+
+	## Sets (or with null removes) metadata through set_meta(), so undo really removes
+	## entries that didn't exist (assigning "metadata/x" = null would leave a Nil entry).
+	func assign_meta(obj: Object, meta_name: StringName, value: Variant) -> Action:
+		var old: Variant = obj.get_meta(meta_name) if obj.has_meta(meta_name) else null
+		_ops.append({"kind": "meta", "obj": obj, "name": meta_name, "new": value, "old": old})
+		return self
+
 	func rename(node: Node, new_name: String) -> Action:
 		return set_property(node, &"name", new_name)
 
@@ -125,6 +138,9 @@ class Action:
 				"prop":
 					ur.add_do_property(op["obj"], op["prop"], op["new"])
 					ur.add_undo_property(op["obj"], op["prop"], op["old"])
+				"meta":
+					ur.add_do_method(op["obj"], &"set_meta", op["name"], op["new"])
+					ur.add_undo_method(op["obj"], &"set_meta", op["name"], op["old"])
 		if _has_selection:
 			ur.add_do_method(target, &"_do_select", _select_after)
 		ur.commit_action()

@@ -10,19 +10,20 @@ extends RefCounted
 static func has_editor_dock() -> bool:
 	return ClassDB.class_exists(&"EditorDock")
 
-## Adds `content` as a dock and returns the handle to pass to remove_dock().
+## Adds `content` as a dock (tabbed next to the Scene dock) and returns the handle to
+## pass to remove_dock().
 static func add_dock(plugin: EditorPlugin, content: Control, title: String, icon: Texture2D) -> Control:
 	if has_editor_dock():
 		var dock: Control = ClassDB.instantiate(&"EditorDock") as Control
 		dock.set(&"title", title)
 		if icon != null:
 			dock.set(&"dock_icon", icon)
-		dock.set(&"default_slot", 3) # EditorDock.DOCK_SLOT_RIGHT_UL
+		dock.set(&"default_slot", ClassDB.class_get_integer_constant(&"EditorDock", &"DOCK_SLOT_LEFT_UR"))
 		dock.add_child(content)
 		plugin.call(&"add_dock", dock)
 		return dock
 	content.name = title
-	plugin.call(&"add_control_to_dock", EditorPlugin.DOCK_SLOT_RIGHT_UL, content)
+	plugin.call(&"add_control_to_dock", EditorPlugin.DOCK_SLOT_LEFT_UR, content)
 	return content
 
 static func remove_dock(plugin: EditorPlugin, handle: Control) -> void:

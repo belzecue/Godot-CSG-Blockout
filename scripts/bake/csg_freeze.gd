@@ -71,7 +71,7 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 		var parent: Node = root.get_parent()
 		action.add_node(parent, frozen, root.get_index(), root.global_transform, "packed")
 		for extra: Node in _extras(root):
-			action.set_property(extra, &"metadata/" + String(META_HOME), String(root.get_path_to(extra.get_parent())))
+			action.assign_meta(extra, META_HOME, String(root.get_path_to(extra.get_parent())))
 			action.reparent(extra, frozen)
 		action.remove_node(root)
 		action.rename(frozen, final_name)
@@ -210,7 +210,7 @@ static func unfreeze(frozen_nodes: Array[MeshInstance3D]) -> void:
 			if home == null:
 				home = root
 			action.reparent(extra, home)
-			action.set_property(extra, &"metadata/" + String(META_HOME), null)
+			action.assign_meta(extra, META_HOME, null)
 		action.remove_node(frozen)
 		action.rename(root, final_name)
 		restored.append(root)

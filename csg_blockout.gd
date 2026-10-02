@@ -10,6 +10,8 @@ var tools: CsgBlockoutToolManager
 var _draw_tool: CsgBlockoutDrawTool
 var _opening_tool: CsgBlockoutOpeningTool
 var _export_plugin: CsgBlockoutExportPlugin
+var outliner: CsgBlockoutOutliner
+var _outliner_dock: Control
 
 static var csg_plugin_path: String
 static var undo_manager: EditorUndoRedoManager
@@ -108,6 +110,10 @@ func _enter_tree() -> void:
 	_export_plugin = CsgBlockoutExportPlugin.new()
 	add_export_plugin(_export_plugin)
 
+	outliner = CsgBlockoutOutliner.new()
+	_outliner_dock = CsgBlockoutCompat.add_dock(self, outliner, CsgBlockoutI18n.t("OUTLINER_TITLE"), load("res://addons/csg_blockout/res/icons/box.svg") as Texture2D)
+	scene_changed.connect(_on_scene_changed)
+
 	# Viewport tools: input is forwarded even with nothing selected, and the HUD is
 	# drawn over every 3D viewport.
 	CsgBlockoutShortcuts.register_all()
@@ -135,6 +141,11 @@ func _handles(object: Object) -> bool:
 
 func _on_selection_changed() -> void:
 	update_overlays()
+
+func _on_scene_changed(_scene_root: Node) -> void:
+	if outliner != null:
+		outliner.clear_solo()
+		outliner.mark_dirty()
 
 func _forward_3d_gui_input(viewport_camera: Camera3D, event: InputEvent) -> int:
 	var result: int = _pie_menu_input(viewport_camera, event)
@@ -297,6 +308,12 @@ func _exit_tree() -> void:
 	if _export_plugin != null:
 		remove_export_plugin(_export_plugin)
 		_export_plugin = null
+	if scene_changed.is_connected(_on_scene_changed):
+		scene_changed.disconnect(_on_scene_changed)
+	if _outliner_dock != null:
+		CsgBlockoutCompat.remove_dock(self, _outliner_dock)
+		_outliner_dock = null
+		outliner = null
 
 	if ruler_gizmo_plugin != null:
 		remove_node_3d_gizmo_plugin(ruler_gizmo_plugin)
