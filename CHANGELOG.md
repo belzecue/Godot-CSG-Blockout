@@ -23,13 +23,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Semantic tags** (wall, floor, hazard, interactive): color-coded grid materials plus a `csg_blockout_tag` metadata your game can read; export an SVG legend for design docs.
 - **Play From Here**: run the current scene with a first-person test character at the viewport center (or the cursor, from the pie menu or a shortcut you assign). It jumps exactly `single_jump_height` and a sprint jump covers `sprint_jump_distance`, the same numbers the ruler and the level checks use. Scenes without lights get a default sun and sky.
 - New player metrics in Project Settings: `capsule_radius`, `crouch_height`, `max_slope_angle`, `walk_speed`.
+- **Bake options** for frozen blockout: collision type (automatic, none, trimesh, one native shape per primitive, or a single convex hull), lightmap UV2 with a texel size, an occluder, and automatic LODs. Defaults are in Project Settings under `addons/csg_blockout/bake`, and every frozen node keeps its own. The Inspector panel of a frozen node changes them and rebakes in place as one undo step, without unfreezing.
+- **Export to MeshLibrary** ("⋯" menu): each selected CSG tree or frozen blockout (or each one directly under a selected group) becomes a GridMap item with its mesh, collision and a rendered preview. The node's origin is the tile's pivot. Exporting into an existing library updates the items with the same names and keeps the rest, so GridMaps painted with it update right away.
+- **glTF round trip** for frozen blockout: export it as `.glb` (next to the scene, in `<scene>_blockout/`), refine it in Blender or any other DCC tool and save over the file. Once Godot has re-imported it, **Use Refined Mesh** swaps it in as one undo step. Surfaces whose material name survived the trip get their Godot material back, shader materials included; materials made in the DCC tool stay as imported. Collision stays the blockout's and the CSG stays inside the node. Exporting over refined work and unfreezing a node that uses a refined mesh both ask first.
+- **Non-manifold warning** for `CSGMesh3D`: since Godot 4.4, CSG runs on the Manifold library and quietly gives empty or broken results for meshes that aren't closed. The Inspector now counts open edges, edges shared by more than two faces and flipped faces, can mark them in the viewport, and the outliner flags such meshes.
 
 ### Changed
 - Shapes created from the pie menu are placed on the surface under the cursor (resting on it, or half-embedded for subtraction), aligned to the surface normal and snapped to the grid. Sidebar creation keeps the selection's height and snaps horizontally.
 - The pie menu has six sectors: Union, Intersection and Subtraction stay where they were, and the gaps hold Draw (box, room), Openings (door, window) and More.
 - Switching the operation from the pie menu now applies to every selected CSG shape, as one undo step.
 - New shapes get readable names (`Box`, `Floor`, `Wall`, `Cut`, `Room`, ...) instead of `CSGBox3D2`.
-- The top bar is icon-only (labels moved to tooltips) and keeps a fixed width, so it sits on the same row as Godot's 3D toolbar and never makes the viewport jump when the selection changes. Repeater/Spreader Refresh and Bake moved to the "⋯" menu.
+- The top bar is icon-only (labels moved to tooltips) and keeps a fixed width, so it sits on the same row as Godot's 3D toolbar, next to the menus Godot adds for the selected node, and never makes the viewport jump when the selection changes. Repeater/Spreader Refresh and Bake, and the view toggles (dimension labels, ruler visibility), are in the "⋯" menu.
 - Rulers and player references are placed next to the selected CSG tree instead of inside it.
 
 ### Fixed
