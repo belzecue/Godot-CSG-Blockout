@@ -173,4 +173,12 @@ const STRINGS: Dictionary = {
 		"zh": "退出", "en": "Exit", "ja": "終了", "ko": "종료",
 		"es": "Salir", "pt": "Sair", "ru": "Выход",
 	},
+	"RESIZE_ACTION": {
+		"zh": "调整尺寸", "en": "Resize", "ja": "サイズを変更", "ko": "크기 조정",
+		"es": "Cambiar tamaño", "pt": "Redimensionar", "ru": "Изменить размер",
+	},
+	"STATUS_TREE_SELECTED": {
+		"zh": "已选中整棵树：%s", "en": "Selected the whole tree: %s", "ja": "ツリー全体を選択：%s", "ko": "트리 전체 선택: %s",
+		"es": "Árbol completo seleccionado: %s", "pt": "Árvore inteira selecionada: %s", "ru": "Выбрано всё дерево: %s",
+	},
 }

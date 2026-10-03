@@ -1,20 +1,26 @@
 @tool
 class_name CsgBlockoutFaceDrag
 extends CsgBlockoutTool
-## TrenchBroom-style face push/pull on selected CSG primitives: hold Shift to
-## highlight the face under the cursor, Shift+drag to move it along its normal.
-## The opposite face stays put, axis-aligned faces land on grid lines, and the
-## drag is one undo step. A Shift+click without dragging behaves like Godot's
-## Shift+click (toggles the node out of the selection).
+## Face push/pull through arrow handles: every face of a selected box, cylinder or
+## stairs that faces the camera shows an arrow; drag it to move that face along its
+## normal. The opposite face stays put, axis-aligned faces land on grid lines, and the
+## drag is one undo step. No modifier key, so Shift stays Godot's multi-select.
 ## Supported: CSGBox3D (6 faces), CSGCylinder3D (caps -> height, side -> radius),
 ## CSGStairs3D (top -> height, front -> depth, sides -> width).
 
-const DRAG_THRESHOLD: float = 4.0
+## Mouse travel (px) before a press on a handle becomes a drag.
+const DRAG_THRESHOLD: float = 3.0
 const MIN_EXTENT: float = 0.01
+## Handles are drawn for at most this many selected shapes.
+const MAX_HANDLE_NODES: int = 4
+const HANDLE_RADIUS: float = 6.0
+const ARROW_LENGTH: float = 24.0
+const PICK_RADIUS: float = 11.0
+## Cyan, so it never blends with Godot's orange selection box.
+const COLOR: Color = Color(0.3, 0.9, 1.0)
 
 var _hover: Dictionary = {}
 var _drag: Dictionary = {}
-var _shift_held: bool = false
 var _press_pos: Vector2 = Vector2.ZERO
 
 func get_id() -> StringName:
@@ -27,11 +33,6 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 	if manager.active != null:
 		_hover = {}
 		return PASS
-	if event is InputEventKey and (event as InputEventKey).keycode == KEY_SHIFT:
-		_shift_held = event.is_pressed()
-		_hover = _pick(camera, manager.mouse_pos) if _shift_held else {}
-		manager.refresh()
-		return PASS
 	if event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event as InputEventMouseMotion
 		if not _drag.is_empty():
@@ -40,130 +41,97 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 			_drag["moved"] = true
 			_update_drag(camera, mm.position, mm)
 			return STOP
-		_shift_held = mm.shift_pressed
-		var previous: bool = not _hover.is_empty()
-		_hover = _pick(camera, mm.position) if _shift_held else {}
-		if previous or not _hover.is_empty():
+		var previous: String = _key(_hover)
+		_hover = _pick(camera, mm.position)
+		if _key(_hover) != previous:
 			manager.refresh()
 		return PASS
 	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
 		if mb.pressed:
-			if not mb.shift_pressed or mb.ctrl_pressed or mb.alt_pressed:
+			if mb.double_click:
 				return PASS
-			var face: Dictionary = _pick(camera, mb.position)
-			if face.is_empty():
+			var handle: Dictionary = _pick(camera, mb.position)
+			if handle.is_empty():
 				return PASS
-			_begin(face, mb.position)
+			_begin(handle, mb.position)
 			return STOP
 		if not _drag.is_empty():
 			_finish()
 			return STOP
 	return PASS
 
-# --- picking ---------------------------------------------------------------------
+# --- handles -------------------------------------------------------------------------
 
-## Closest face of a selected supported primitive under `pos`.
-func _pick(camera: Camera3D, pos: Vector2) -> Dictionary:
+## Handles of the selected shapes' camera-facing faces:
+## [{"node", "face", "point" (world anchor), "screen", "dir" (screen arrow direction)}].
+func _handles(camera: Camera3D) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	if camera == null:
-		return {}
-	var rp: Vector2 = manager.ray_pos(pos)
-	var origin: Vector3 = camera.project_ray_origin(rp)
-	var dir: Vector3 = camera.project_ray_normal(rp)
-	var best: Dictionary = {}
-	var best_t: float = INF
+		return out
+	var count: int = 0
 	for n: Node in EditorInterface.get_selection().get_selected_nodes():
+		if count >= MAX_HANDLE_NODES:
+			break
 		if not supports(n) or not (n as Node3D).is_visible_in_tree():
 			continue
+		count += 1
 		var node: Node3D = n as Node3D
-		var inv: Transform3D = node.global_transform.affine_inverse()
-		var res: Dictionary = _intersect(node, inv * origin, inv.basis * dir)
-		if res.is_empty():
-			continue
-		var world_point: Vector3 = node.global_transform * (res["point"] as Vector3)
-		var t: float = origin.distance_to(world_point)
-		if t < best_t:
-			best_t = t
-			best = {"node": node, "face": res["face"], "point": world_point}
+		var xf: Transform3D = node.global_transform
+		for face: Dictionary in CsgBlockoutShapeInfo.push_faces(node):
+			var normal: Vector3 = (xf.basis * (face["normal"] as Vector3)).normalized()
+			var anchor: Vector3 = xf * (face["center"] as Vector3)
+			if face["radial"]:
+				# Cylinder side: put the handle on the side that faces the camera.
+				var up: Vector3 = xf.basis.y.normalized()
+				var to_cam: Vector3 = camera.global_position - xf.origin
+				to_cam -= up * to_cam.dot(up)
+				if to_cam.length() < 0.001:
+					continue
+				normal = to_cam.normalized()
+				anchor = xf.origin + normal * ((node as CSGCylinder3D).radius * xf.basis.x.length())
+			if normal.dot(camera.global_position - anchor) <= 0.0 or camera.is_position_behind(anchor):
+				continue
+			var screen: Vector2 = camera.unproject_position(anchor)
+			var dir: Vector2 = Vector2.ZERO
+			if not camera.is_position_behind(anchor + normal * 0.25):
+				dir = camera.unproject_position(anchor + normal * 0.25) - screen
+			dir = dir.normalized() if dir.length() > 0.5 else Vector2.ZERO
+			out.append({"node": node, "face": face, "point": anchor, "screen": screen, "dir": dir})
+	return out
+
+## The handle under `pos` (arrow or knob), or {}.
+func _pick(camera: Camera3D, pos: Vector2) -> Dictionary:
+	var p: Vector2 = manager.ray_pos(pos)
+	var scale: float = EditorInterface.get_editor_scale()
+	var best: Dictionary = {}
+	var best_d: float = PICK_RADIUS * scale
+	for h: Dictionary in _handles(camera):
+		var screen: Vector2 = h["screen"]
+		var tip: Vector2 = screen + (h["dir"] as Vector2) * ARROW_LENGTH * scale
+		var d: float = Geometry2D.get_closest_point_to_segment(p, screen, tip).distance_to(p)
+		if d < best_d:
+			best_d = d
+			best = h
 	return best
 
-## Local-space ray hit: {"point", "face"} where face is a push_faces() entry.
-func _intersect(n: Node3D, o: Vector3, d: Vector3) -> Dictionary:
-	if n is CSGCylinder3D:
-		return _intersect_cylinder(n as CSGCylinder3D, o, d)
-	var box: AABB = CsgBlockoutShapeInfo.local_aabb(n)
-	var res: Dictionary = _intersect_aabb(box, o, d)
-	if res.is_empty():
-		return {}
-	var axis: int = res["axis"]
-	var side: int = res["side"]
-	for f: Dictionary in CsgBlockoutShapeInfo.push_faces(n):
-		if f["axis"] == axis and f["sign"] == side and not f["radial"]:
-			return {"point": res["point"], "face": f}
-	return {}
+## The handle's node still exists and is in the edited scene (not a closed one).
+static func _alive(h: Dictionary) -> bool:
+	return not h.is_empty() and is_instance_valid(h.get("node")) and (h["node"] as Node).is_inside_tree()
 
-## Slab test; returns entry point and entry face (axis, side) or {}.
-static func _intersect_aabb(box: AABB, o: Vector3, d: Vector3) -> Dictionary:
-	var tmin: float = -INF
-	var tmax: float = INF
-	var axis: int = -1
-	var side: int = 0
-	for a: int in 3:
-		var lo: float = box.position[a]
-		var hi: float = box.end[a]
-		if absf(d[a]) < 0.000001:
-			if o[a] < lo or o[a] > hi:
-				return {}
-			continue
-		var t1: float = (lo - o[a]) / d[a]
-		var t2: float = (hi - o[a]) / d[a]
-		var near: float = minf(t1, t2)
-		var far: float = maxf(t1, t2)
-		if near > tmin:
-			tmin = near
-			axis = a
-			side = -1 if d[a] > 0.0 else 1
-		tmax = minf(tmax, far)
-	if axis < 0 or tmax < tmin or tmin < 0.0:
-		return {}
-	return {"point": o + d * tmin, "axis": axis, "side": side}
-
-func _intersect_cylinder(c: CSGCylinder3D, o: Vector3, d: Vector3) -> Dictionary:
-	var faces: Array[Dictionary] = CsgBlockoutShapeInfo.push_faces(c)
-	var best_t: float = INF
-	var best_face: Dictionary = {}
-	var h: float = c.height * 0.5
-	var r: float = c.radius
-	if absf(d.y) > 0.000001:
-		for cap: int in [1, -1]:
-			var t: float = (h * cap - o.y) / d.y
-			var p: Vector3 = o + d * t
-			if t > 0.0 and Vector2(p.x, p.z).length() <= r and t < best_t:
-				best_t = t
-				best_face = faces[0] if cap > 0 else faces[1]
-	var a: float = d.x * d.x + d.z * d.z
-	if a > 0.000001:
-		var b: float = 2.0 * (o.x * d.x + o.z * d.z)
-		var cc: float = o.x * o.x + o.z * o.z - r * r
-		var disc: float = b * b - 4.0 * a * cc
-		if disc >= 0.0:
-			var t: float = (-b - sqrt(disc)) / (2.0 * a)
-			var p: Vector3 = o + d * t
-			if t > 0.0 and absf(p.y) <= h and t < best_t:
-				best_t = t
-				best_face = faces[2]
-	if best_face.is_empty():
-		return {}
-	return {"point": o + d * best_t, "face": best_face}
+static func _key(h: Dictionary) -> String:
+	if not _alive(h):
+		return ""
+	return "%d:%d" % [(h["node"] as Node).get_instance_id(), int(h["face"]["id"])]
 
 # --- dragging ----------------------------------------------------------------------
 
-func _begin(hover: Dictionary, pos: Vector2) -> void:
-	var node: Node3D = hover["node"]
-	var face: Dictionary = hover["face"]
+func _begin(handle: Dictionary, pos: Vector2) -> void:
+	var node: Node3D = handle["node"]
+	var face: Dictionary = handle["face"]
 	var world_normal: Vector3 = (node.global_transform.basis * (face["normal"] as Vector3)).normalized()
 	if face["radial"]:
-		var radial: Vector3 = (hover["point"] as Vector3) - node.global_position
+		var radial: Vector3 = (handle["point"] as Vector3) - node.global_position
 		radial = radial - node.global_transform.basis.y.normalized() * radial.dot(node.global_transform.basis.y.normalized())
 		world_normal = radial.normalized() if radial.length() > 0.0001 else world_normal
 	var props: Dictionary = {}
@@ -174,13 +142,13 @@ func _begin(hover: Dictionary, pos: Vector2) -> void:
 		"node": node,
 		"face": face,
 		"normal": world_normal,
-		"start_point": hover["point"],
+		"start_point": handle["point"],
 		"start_props": props,
 		"start_xform": node.global_transform,
 		"delta": 0.0,
 		"moved": false,
 	}
-	_hover = hover
+	_hover = handle
 
 static func _props_for(n: Node3D) -> Array[StringName]:
 	if n is CSGBox3D:
@@ -285,9 +253,9 @@ func _apply(delta: float) -> float:
 func _finish() -> void:
 	var node: Node3D = _drag["node"]
 	if not _drag["moved"]:
-		# Plain Shift+click: same as Godot's Shift+click on a selected node.
-		EditorInterface.get_selection().remove_node(node)
+		# Clicked a handle without dragging: nothing to do.
 		_drag = {}
+		manager.refresh()
 		return
 	var final_props: Dictionary = {}
 	for p: StringName in _drag["start_props"]:
@@ -304,38 +272,57 @@ func _finish() -> void:
 	if not final_pos.is_equal_approx(node.global_position):
 		action.set_property(node, &"global_position", final_pos)
 	action.commit()
+	if node is CSGBox3D:
+		CsgBlockoutDrawTool.note_resized(node, (node as CSGBox3D).size)
 	_drag = {}
 	manager.refresh()
 
 # --- overlay -------------------------------------------------------------------------
 
 func draw_overlay(overlay: Control, camera: Camera3D) -> void:
-	if camera == null:
+	if camera == null or manager.active != null:
 		return
-	var current: Dictionary = _drag if not _drag.is_empty() else _hover
-	if current.is_empty() or not is_instance_valid(current.get("node")):
-		return
-	var node: Node3D = current["node"]
-	var face: Dictionary = current["face"]
 	var scale: float = EditorInterface.get_editor_scale()
-	# Cyan, so it never blends with Godot's orange selection box.
-	var color: Color = Color(0.3, 0.9, 1.0)
-	var outline: PackedVector2Array = _face_outline(node, face, camera)
-	if outline.size() >= 3:
-		var fill: Color = color
-		fill.a = 0.35
-		if not Geometry2D.triangulate_polygon(outline).is_empty():
-			overlay.draw_colored_polygon(outline, fill)
-		var closed: PackedVector2Array = outline.duplicate()
-		closed.append(outline[0])
-		overlay.draw_polyline(closed, color, 3.0 * scale, true)
-	if not _drag.is_empty() and _drag["moved"]:
+	var current: Dictionary = _drag if not _drag.is_empty() else _hover
+	if not current.is_empty() and _alive(current):
+		var outline: PackedVector2Array = _face_outline(current["node"], current["face"], camera)
+		if outline.size() >= 3:
+			var fill: Color = COLOR
+			fill.a = 0.3
+			if not Geometry2D.triangulate_polygon(outline).is_empty():
+				overlay.draw_colored_polygon(outline, fill)
+			var closed: PackedVector2Array = outline.duplicate()
+			closed.append(outline[0])
+			overlay.draw_polyline(closed, COLOR, 2.5 * scale, true)
+	if _drag.is_empty():
+		var hot: String = _key(_hover)
+		for h: Dictionary in _handles(camera):
+			_draw_handle(overlay, h, _key(h) == hot, scale)
+	elif _drag["moved"]:
+		var node: Node3D = _drag["node"]
 		var font: Font = overlay.get_theme_font(&"font", &"Label")
 		var world: Vector3 = (_drag["start_point"] as Vector3) + (_drag["normal"] as Vector3) * float(_drag["delta"])
 		if not camera.is_position_behind(world):
 			var size: Vector3 = CsgBlockoutShapeInfo.world_size(node)
 			var text: String = "%+.2f m  ·  %s × %s × %s m" % [float(_drag["delta"]), CsgBlockoutDrawTool._fmt(size.x), CsgBlockoutDrawTool._fmt(size.y), CsgBlockoutDrawTool._fmt(size.z)]
 			CsgBlockoutToolManager.draw_label(overlay, font, int(round(13 * scale)), camera.unproject_position(world) + Vector2(14, -14) * scale, text, true)
+
+## Knob on the face with an arrow pointing out of it.
+func _draw_handle(overlay: Control, h: Dictionary, hot: bool, s: float) -> void:
+	var screen: Vector2 = h["screen"]
+	var dir: Vector2 = h["dir"]
+	var color: Color = COLOR if hot else COLOR.darkened(0.2)
+	if dir != Vector2.ZERO:
+		var tip: Vector2 = screen + dir * ARROW_LENGTH * s * (1.15 if hot else 1.0)
+		var side: Vector2 = Vector2(-dir.y, dir.x)
+		overlay.draw_line(screen, tip, Color(0, 0, 0, 0.5), 5.0 * s, true)
+		overlay.draw_line(screen, tip, color, 2.5 * s, true)
+		var head: PackedVector2Array = PackedVector2Array([tip + dir * 8.0 * s, tip + side * 5.5 * s, tip - side * 5.5 * s])
+		overlay.draw_colored_polygon(head, color)
+	var r: float = HANDLE_RADIUS * s * (1.3 if hot else 1.0)
+	overlay.draw_circle(screen, r + 1.5 * s, Color(0, 0, 0, 0.55))
+	overlay.draw_circle(screen, r, color)
+	overlay.draw_circle(screen, r * 0.4, Color(1, 1, 1, 0.95))
 
 ## Screen-space outline of a face (empty if any corner is behind the camera).
 func _face_outline(node: Node3D, face: Dictionary, camera: Camera3D) -> PackedVector2Array:
@@ -344,10 +331,11 @@ func _face_outline(node: Node3D, face: Dictionary, camera: Camera3D) -> PackedVe
 	if node is CSGCylinder3D:
 		var c: CSGCylinder3D = node as CSGCylinder3D
 		if face["radial"]:
-			for i: int in 2:
-				var y: float = c.height * 0.5 * (1.0 if i == 0 else -1.0)
-				pts3.append(Vector3(-c.radius, y, 0))
-				pts3.append(Vector3(c.radius, y, 0))
+			var to_cam: Vector3 = xf.affine_inverse() * camera.global_position
+			var side: Vector3 = Vector3(-to_cam.z, 0, to_cam.x).normalized() * c.radius
+			for y: float in [c.height * 0.5, -c.height * 0.5]:
+				pts3.append(Vector3(-side.x, y, -side.z))
+				pts3.append(Vector3(side.x, y, side.z))
 			pts3 = PackedVector3Array([pts3[0], pts3[1], pts3[3], pts3[2]])
 		else:
 			var y: float = c.height * 0.5 * float(face["sign"])

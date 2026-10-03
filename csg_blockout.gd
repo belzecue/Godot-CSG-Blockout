@@ -139,7 +139,9 @@ func _enter_tree() -> void:
 	tools = CsgBlockoutToolManager.new(self)
 	tools.add_passive(CsgBlockoutTransformHotkeys.new())
 	tools.add_passive(CsgBlockoutFaceDrag.new())
-	tools.add_passive(CsgBlockoutMeasureOverlay.new())
+	tools.add_passive(CsgBlockoutTreeSelect.new())
+	# Dimension labels are drawn over the face handles, so they get the click first.
+	tools.add_passive(CsgBlockoutMeasureOverlay.new(), 10)
 	_draw_tool = CsgBlockoutDrawTool.new()
 	_opening_tool = CsgBlockoutOpeningTool.new()
 	tools.register_tool(&"draw", _draw_tool)

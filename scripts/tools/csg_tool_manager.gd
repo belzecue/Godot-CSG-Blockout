@@ -27,7 +27,10 @@ var plugin: EditorPlugin
 var active: CsgBlockoutTool
 ## The active tool stays after finishing a result (started with a double-click).
 var locked: bool = false
+## Passive tools in drawing order, and in input order (higher priority first).
 var passives: Array[CsgBlockoutTool] = []
+var _input_passives: Array[CsgBlockoutTool] = []
+var _priorities: Dictionary = {}
 var _modal_tools: Dictionary = {}
 ## Camera and mouse position of the viewport that received the last event.
 var camera: Camera3D
@@ -50,9 +53,15 @@ static func refresh_all() -> void:
 	if current != null:
 		current.refresh()
 
-func add_passive(tool: CsgBlockoutTool) -> void:
+## `input_priority`: passives with a higher value see input first (e.g. labels drawn on
+## top of handles must win the click).
+func add_passive(tool: CsgBlockoutTool, input_priority: int = 0) -> void:
 	tool.manager = self
 	passives.append(tool)
+	_priorities[tool] = input_priority
+	_input_passives = passives.duplicate()
+	_input_passives.sort_custom(func(a: CsgBlockoutTool, b: CsgBlockoutTool) -> bool:
+		return int(_priorities[a]) > int(_priorities[b]) or (int(_priorities[a]) == int(_priorities[b]) and passives.find(a) < passives.find(b)))
 
 ## Registers a modal tool so passive tools (hotkeys) can start it by id.
 func register_tool(tool_id: StringName, tool: CsgBlockoutTool) -> void:
@@ -174,7 +183,7 @@ func handle_input(cam: Camera3D, event: InputEvent) -> int:
 		if r != PASS:
 			refresh()
 			return r
-	for tool: CsgBlockoutTool in passives:
+	for tool: CsgBlockoutTool in _input_passives:
 		var r: int = tool.input(cam, event)
 		if r != PASS:
 			refresh()
