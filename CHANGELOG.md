@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-03
+
+A major release that turns CSG_Blockout from a shape-creation helper into a level prototyping tool: draw rooms in one drag, cut doors and windows, check the level against your character, play it, and freeze it into meshes you can always turn back into CSG. The controls were rebuilt around one rule: every tool does one thing, says what the next step is, and hands control back.
+
 ### Added
 - **Draw in one drag**: **Box** drags a base on any surface (or the ground) and builds the box on release, with the height you gave your last box. **Cut** drags an opening on a surface and cuts straight through it; the cut lands in the CSG tree it was drawn on (a lone wall is wrapped into a new combiner automatically). **Room** creates a shell box plus a hollow; height, wall thickness, floor thickness and open top are in Project Settings under `addons/csg_blockout/room`. Hold Shift while drawing a box to make it a separate object.
 - **Door and window presets**: click a wall to cut a doorway (dropped to the floor) or a window (at sill height). The cut is aligned to the wall and goes through its measured thickness; F adds a frame. Sizes live under `addons/csg_blockout/openings`.
@@ -39,6 +43,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - **Toolbar**: only actions for the whole level stay (grid, snap, Check, Play, Freeze, "⋯"). The "⋯" menu gained **Shortcuts** (every key, with your current bindings) and **Language**. Repeater/Spreader Refresh and Bake, and the view toggles (dimension labels, ruler visibility), are in the "⋯" menu too. Shape buttons with nothing selected create the shape on the surface in the middle of the view.
 - New shapes get readable names (`Box`, `Floor`, `Wall`, `Cut`, `Room`, ...) instead of `CSGBox3D2`.
 - Rulers and player references are placed next to the selected CSG tree instead of inside it.
+
+### Removed
+- The pie menu's Union / Intersection / Subtraction submenus and the "current operation" they set: new shapes are always unions, and the operation of existing shapes is changed on the selection (palette buttons or the pie menu's More).
+- Project settings `addons/csg_blockout/auto_hide` (the palette is always shown) and `addons/csg_blockout/default_operation`; they are cleared from `project.godot` when the plugin loads.
 
 ### Fixed
 - Repeater, Spreader and Ruler scripts no longer reference editor-only classes, which could make them fail to compile in exported games. Exports now also drop editor-only helper nodes (rulers, player references).
