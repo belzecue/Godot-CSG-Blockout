@@ -24,11 +24,9 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 		return PASS
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
 	if not key.echo:
-		if CsgBlockoutShortcuts.matches("grid_smaller", key):
-			grid.step(-1)
-			return STOP
-		if CsgBlockoutShortcuts.matches("grid_bigger", key):
-			grid.step(1)
+		if CsgBlockoutShortcuts.matches("grid_smaller", key) or CsgBlockoutShortcuts.matches("grid_bigger", key):
+			grid.step(-1 if CsgBlockoutShortcuts.matches("grid_smaller", key) else 1)
+			CsgBlockoutStatus.show(CsgBlockoutI18n.tf("HUD_GRID", [grid.label()]), false, "", Callable(), 1.5)
 			return STOP
 	if manager.active != null:
 		return PASS

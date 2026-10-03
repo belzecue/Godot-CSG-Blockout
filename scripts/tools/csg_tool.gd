@@ -14,7 +14,8 @@ var manager: CsgBlockoutToolManager
 func get_id() -> StringName:
 	return &""
 
-## Called when the tool becomes the active modal tool.
+## Called when the tool becomes the active modal tool (and again after each result
+## while it's locked).
 func activate() -> void:
 	pass
 
@@ -22,7 +23,7 @@ func activate() -> void:
 func deactivate() -> void:
 	pass
 
-## Esc / right click: abort the current step. Modal tools usually end themselves.
+## Esc / right click / the chip's Esc key: leave the tool.
 func cancel() -> void:
 	manager.deactivate(self)
 
@@ -34,6 +35,9 @@ func input(_camera: Camera3D, _event: InputEvent) -> int:
 func draw_overlay(_overlay: Control, _camera: Camera3D) -> void:
 	pass
 
-## One-line usage hint shown at the bottom of the viewport while active.
-func hint() -> String:
-	return ""
+## The chip at the top of the viewport while this tool is active. Only the one thing
+## to do next, never a list of every key:
+## {"title": String, "step": String, "accent": Color, "warn": bool,
+##  "tags": [{"key": String, "label": String, "on": bool, "toggle": Callable}]}
+func chip() -> Dictionary:
+	return {}

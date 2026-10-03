@@ -2,12 +2,16 @@
 class_name CsgBlockoutArrayTool
 extends CsgBlockoutTool
 ## Duplicate along an axis (Ctrl+Shift+D): move the mouse along X, Y or Z and the
-## selection repeats with its own size as the step; wheel changes the gap, X/Y/Z
-## lock the axis, click creates the copies as siblings in one undo step.
-## Faster than setting up a CSGRepeater3D; keep the Repeater for parametric layouts.
+## selection repeats with its own size as the step; + / - change the gap, X/Y/Z lock
+## the axis, click creates the copies as siblings in one undo step. The wheel stays
+## with the camera. Faster than setting up a CSGRepeater3D; keep the Repeater for
+## parametric layouts.
 
 const MAX_COPIES: int = 100
 const AXIS_PICK_PIXELS: float = 12.0
+const ACCENT: Color = Color(0.45, 0.85, 0.55)
+const GAP_KEYS_UP: Array[Key] = [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD]
+const GAP_KEYS_DOWN: Array[Key] = [KEY_MINUS, KEY_KP_SUBTRACT]
 
 var _sources: Array[Node3D] = []
 var _bounds: AABB = AABB()
@@ -60,16 +64,17 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 				if mb.pressed:
 					_commit()
 				return STOP
-			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
-				if mb.pressed:
-					var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
-					_gap += grid.size * (1.0 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0)
-					if _axis >= 0:
-						_gap = maxf(_gap, -_bounds.size[_axis] + grid.size * 0.25)
-					_update(camera, mb.position)
-				return STOP
-	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+	if event is InputEventKey and event.is_pressed():
 		var k: Key = (event as InputEventKey).keycode
+		if k in GAP_KEYS_UP or k in GAP_KEYS_DOWN:
+			var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
+			_gap += grid.size * (1.0 if k in GAP_KEYS_UP else -1.0)
+			if _axis >= 0:
+				_gap = maxf(_gap, -_bounds.size[_axis] + grid.size * 0.25)
+			_update(camera, manager.mouse_pos)
+			return STOP
+		if event.is_echo():
+			return PASS
 		if k in [KEY_X, KEY_Y, KEY_Z]:
 			var axis: int = [KEY_X, KEY_Y, KEY_Z].find(k)
 			_locked = not (_locked and _axis == axis)
@@ -184,12 +189,19 @@ func draw_overlay(overlay: Control, camera: Camera3D) -> void:
 	var anchor: Vector3 = _bounds.get_center() + (_offset(_count) if _axis >= 0 else Vector3.ZERO)
 	if camera.is_position_behind(anchor):
 		return
-	var text: String
 	if _axis < 0:
-		text = CsgBlockoutI18n.t("HINT_ARRAY_PICK_AXIS")
-	else:
-		text = CsgBlockoutI18n.tf("ARRAY_LABEL", [_count, CsgBlockoutDrawTool._fmt(_step()), ("[%s]" if _locked else "%s") % "XYZ"[_axis]])
+		return
+	var text: String = CsgBlockoutI18n.tf("ARRAY_LABEL", [_count, CsgBlockoutDrawTool._fmt(_step()), ("[%s]" if _locked else "%s") % "XYZ"[_axis]])
 	CsgBlockoutToolManager.draw_label(overlay, font, int(round(13 * scale)), camera.unproject_position(anchor) + Vector2(14, -14) * scale, text, true)
 
-func hint() -> String:
-	return CsgBlockoutI18n.t("HINT_ARRAY")
+func chip() -> Dictionary:
+	var step: String = CsgBlockoutI18n.t("STEP_ARRAY_AXIS") if _axis < 0 else CsgBlockoutI18n.tf("STEP_ARRAY_CLICK", [_count])
+	return {
+		"title": CsgBlockoutI18n.t("ARRAY_ACTION"),
+		"step": step,
+		"accent": ACCENT,
+		"tags": [
+			{"key": "X Y Z", "label": CsgBlockoutI18n.t("TAG_LOCK_AXIS"), "on": _locked},
+			{"key": "+ −", "label": CsgBlockoutI18n.tf("TAG_GAP", [CsgBlockoutDrawTool._fmt(_gap)]), "on": not is_zero_approx(_gap)},
+		],
+	}

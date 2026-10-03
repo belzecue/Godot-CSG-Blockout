@@ -37,36 +37,6 @@ const STRINGS: Dictionary = {
 		"zh": "房间", "en": "Room", "ja": "部屋", "ko": "방",
 		"es": "Habitación", "pt": "Sala", "ru": "Комната",
 	},
-	"DRAW_BOX_TOOLTIP": {
-		"zh": "绘制方块：在表面或地面拖出底面，再移动鼠标定高度（差集模式下即为切割）",
-		"en": "Draw box: drag a base on a surface or the ground, then move the mouse to set the height (cuts in Subtraction mode)",
-		"ja": "ボックスを描く：面または地面で底面をドラッグし、マウスで高さを決める（減算モードでは切り抜き）",
-		"ko": "박스 그리기: 표면이나 바닥에서 밑면을 드래그한 뒤 마우스로 높이 설정 (빼기 모드에서는 잘라내기)",
-		"es": "Dibujar caja: arrastra una base sobre una superficie o el suelo y mueve el ratón para fijar la altura (en modo Resta, corta)",
-		"pt": "Desenhar caixa: arraste uma base numa superfície ou no chão e mova o mouse para definir a altura (no modo Subtração, corta)",
-		"ru": "Нарисовать блок: протяните основание на поверхности или земле, затем мышью задайте высоту (в режиме вычитания — вырез)",
-	},
-	"DRAW_ROOM_TOOLTIP": {
-		"zh": "绘制房间：外壳盒 + 内腔差集，墙厚与是否开顶见项目设置 addons/csg_blockout/room",
-		"en": "Draw room: shell box + hollow subtraction; wall thickness and open top in Project Settings > addons/csg_blockout/room",
-		"ja": "部屋を描く：外殻ボックス＋内部の減算。壁厚と天井の有無はプロジェクト設定 addons/csg_blockout/room",
-		"ko": "방 그리기: 외곽 박스 + 내부 빼기. 벽 두께와 천장 개방은 프로젝트 설정 addons/csg_blockout/room",
-		"es": "Dibujar habitación: caja exterior + hueco restado; grosor de muros y techo abierto en Ajustes del proyecto > addons/csg_blockout/room",
-		"pt": "Desenhar sala: caixa externa + vão subtraído; espessura das paredes e teto aberto em Configurações do projeto > addons/csg_blockout/room",
-		"ru": "Нарисовать комнату: внешний блок + вычитаемая полость; толщина стен и открытый верх — в настройках проекта addons/csg_blockout/room",
-	},
-	"HINT_DRAW_IDLE": {
-		"zh": "拖动画出底面 · Esc 退出", "en": "Drag to draw the base · Esc to exit", "ja": "ドラッグで底面を描く · Esc で終了", "ko": "드래그해서 밑면 그리기 · Esc로 종료",
-		"es": "Arrastra para dibujar la base · Esc para salir", "pt": "Arraste para desenhar a base · Esc para sair", "ru": "Протяните, чтобы нарисовать основание · Esc — выход",
-	},
-	"HINT_DRAW_BASE": {
-		"zh": "松开鼠标确定底面", "en": "Release to set the base", "ja": "離して底面を確定", "ko": "놓아서 밑면 확정",
-		"es": "Suelta para fijar la base", "pt": "Solte para definir a base", "ru": "Отпустите, чтобы задать основание",
-	},
-	"HINT_DRAW_HEIGHT": {
-		"zh": "移动鼠标定高度 · 点击确认 · Esc 取消", "en": "Move to set the height · Click to confirm · Esc to cancel", "ja": "マウスで高さを決める · クリックで確定 · Esc でキャンセル", "ko": "마우스로 높이 설정 · 클릭해서 확정 · Esc로 취소",
-		"es": "Mueve para fijar la altura · Clic para confirmar · Esc para cancelar", "pt": "Mova para definir a altura · Clique para confirmar · Esc para cancelar", "ru": "Двигайте мышь для высоты · Щелчок — подтвердить · Esc — отмена",
-	},
 	"PUSH_FACE_ACTION": {
 		"zh": "推拉面", "en": "Push/Pull Face", "ja": "面を押し出し/引き込み", "ko": "면 밀기/당기기",
 		"es": "Empujar/tirar cara", "pt": "Empurrar/puxar face", "ru": "Сдвинуть грань",
@@ -83,16 +53,6 @@ const STRINGS: Dictionary = {
 		"zh": "×%d · 间距 %s m · 轴 %s", "en": "×%d · step %s m · axis %s", "ja": "×%d · 間隔 %s m · 軸 %s", "ko": "×%d · 간격 %s m · 축 %s",
 		"es": "×%d · paso %s m · eje %s", "pt": "×%d · passo %s m · eixo %s", "ru": "×%d · шаг %s м · ось %s",
 	},
-	"HINT_ARRAY": {
-		"zh": "沿轴移动鼠标 · 滚轮调间隔 · X/Y/Z 锁轴 · 点击生成 · Esc 取消", "en": "Move along an axis · Wheel: gap · X/Y/Z: lock axis · Click to create · Esc to cancel",
-		"ja": "軸に沿ってマウスを動かす · ホイール：間隔 · X/Y/Z：軸固定 · クリックで作成 · Esc でキャンセル", "ko": "축을 따라 마우스 이동 · 휠: 간격 · X/Y/Z: 축 고정 · 클릭해서 생성 · Esc로 취소",
-		"es": "Mueve a lo largo de un eje · Rueda: separación · X/Y/Z: fijar eje · Clic para crear · Esc para cancelar", "pt": "Mova ao longo de um eixo · Roda: espaçamento · X/Y/Z: travar eixo · Clique para criar · Esc para cancelar",
-		"ru": "Ведите мышь вдоль оси · Колесо: зазор · X/Y/Z: зафиксировать ось · Щелчок — создать · Esc — отмена",
-	},
-	"HINT_ARRAY_PICK_AXIS": {
-		"zh": "移动鼠标选择方向", "en": "Move the mouse to pick a direction", "ja": "マウスを動かして方向を選ぶ", "ko": "마우스를 움직여 방향 선택",
-		"es": "Mueve el ratón para elegir la dirección", "pt": "Mova o mouse para escolher a direção", "ru": "Двигайте мышь, чтобы выбрать направление",
-	},
 	"DOOR": {
 		"zh": "门", "en": "Door", "ja": "ドア", "ko": "문",
 		"es": "Puerta", "pt": "Porta", "ru": "Дверь",
@@ -104,24 +64,6 @@ const STRINGS: Dictionary = {
 	"FRAME": {
 		"zh": "带框", "en": "Frame", "ja": "枠あり", "ko": "틀 포함",
 		"es": "Marco", "pt": "Moldura", "ru": "Рама",
-	},
-	"OPENING_DOOR_TOOLTIP": {
-		"zh": "开门洞：点击墙面切出门洞，自动落地、按墙厚切穿", "en": "Door: click a wall to cut a doorway, dropped to the floor and cut through the wall",
-		"ja": "ドア：壁をクリックして開口を切る。床に合わせ、壁厚を貫通", "ko": "문: 벽을 클릭해 문 구멍을 뚫기, 바닥에 맞추고 벽 두께만큼 관통",
-		"es": "Puerta: haz clic en un muro para abrir un hueco a ras de suelo que atraviesa el muro", "pt": "Porta: clique numa parede para abrir um vão no nível do chão, atravessando a parede",
-		"ru": "Дверь: щёлкните по стене, чтобы вырезать проём от пола сквозь всю толщину",
-	},
-	"OPENING_WINDOW_TOOLTIP": {
-		"zh": "开窗洞：点击墙面按窗台高度切出窗洞", "en": "Window: click a wall to cut a window at sill height",
-		"ja": "窓：壁をクリックして窓台の高さに開口を切る", "ko": "창문: 벽을 클릭해 창턱 높이에 창 구멍 뚫기",
-		"es": "Ventana: haz clic en un muro para abrir una ventana a la altura del alféizar", "pt": "Janela: clique numa parede para abrir uma janela na altura do peitoril",
-		"ru": "Окно: щёлкните по стене, чтобы вырезать окно на высоте подоконника",
-	},
-	"HINT_OPENING": {
-		"zh": "点击墙面放置 · 滚轮调宽 · Shift+滚轮调高 · F 门框 · Esc 退出", "en": "Click a wall to place · Wheel: width · Shift+Wheel: height · F: frame · Esc to exit",
-		"ja": "壁をクリックで配置 · ホイール：幅 · Shift+ホイール：高さ · F：枠 · Esc で終了", "ko": "벽 클릭으로 배치 · 휠: 너비 · Shift+휠: 높이 · F: 틀 · Esc로 종료",
-		"es": "Clic en un muro para colocar · Rueda: ancho · Mayús+Rueda: alto · F: marco · Esc para salir", "pt": "Clique numa parede para colocar · Roda: largura · Shift+Roda: altura · F: moldura · Esc para sair",
-		"ru": "Щелчок по стене — разместить · Колесо: ширина · Shift+колесо: высота · F: рама · Esc — выход",
 	},
 	"DRAW_MENU": {
 		"zh": "绘制", "en": "Draw", "ja": "描画", "ko": "그리기",
@@ -138,5 +80,97 @@ const STRINGS: Dictionary = {
 	"MORE_ACTIONS_TOOLTIP": {
 		"zh": "更多 CSG Blockout 操作", "en": "More CSG Blockout actions", "ja": "その他の CSG Blockout 操作", "ko": "기타 CSG Blockout 작업",
 		"es": "Más acciones de CSG Blockout", "pt": "Mais ações do CSG Blockout", "ru": "Другие действия CSG Blockout",
+	},
+	"TOOL_BOX": {
+		"zh": "方块", "en": "Box", "ja": "ボックス", "ko": "박스",
+		"es": "Caja", "pt": "Caixa", "ru": "Блок",
+	},
+	"TOOL_ROOM": {
+		"zh": "房间", "en": "Room", "ja": "部屋", "ko": "방",
+		"es": "Habitación", "pt": "Sala", "ru": "Комната",
+	},
+	"TOOL_CUT": {
+		"zh": "切割", "en": "Cut", "ja": "切り抜き", "ko": "자르기",
+		"es": "Cortar", "pt": "Cortar", "ru": "Вырез",
+	},
+	"DRAW_BOX_TOOLTIP": {
+		"zh": "方块：在表面或地面上拖出底面，松开即完成（双击按钮可连续使用）", "en": "Box: drag out a base on a surface or the ground and release (double-click to keep the tool on)", "ja": "ボックス：面か地面で底面をドラッグして離すだけ（ダブルクリックで連続使用）", "ko": "박스: 표면이나 바닥에서 밑면을 드래그하고 놓기 (더블 클릭하면 계속 사용)",
+		"es": "Caja: arrastra una base sobre una superficie o el suelo y suelta (doble clic para mantener la herramienta)", "pt": "Caixa: arraste uma base sobre uma superfície ou o chão e solte (clique duplo para manter a ferramenta)", "ru": "Блок: протяните основание по поверхности или земле и отпустите (двойной щелчок — оставить инструмент)",
+	},
+	"DRAW_ROOM_TOOLTIP": {
+		"zh": "房间：拖出地面，松开即生成一个独立的空心房间；层高、墙厚等见项目设置 addons/csg_blockout/room（双击按钮可连续使用）", "en": "Room: drag out the floor and release to make a hollow room of its own; height, wall thickness and more in Project Settings > addons/csg_blockout/room (double-click to keep the tool on)", "ja": "部屋：床をドラッグして離すと独立した中空の部屋に。高さや壁厚はプロジェクト設定 addons/csg_blockout/room（ダブルクリックで連続使用）", "ko": "방: 바닥을 드래그하고 놓으면 독립된 빈 방이 생깁니다. 높이·벽 두께는 프로젝트 설정 addons/csg_blockout/room (더블 클릭하면 계속 사용)",
+		"es": "Habitación: arrastra el suelo y suelta para crear una habitación hueca propia; altura, grosor de muros y más en Ajustes del proyecto > addons/csg_blockout/room (doble clic para mantener la herramienta)", "pt": "Sala: arraste o piso e solte para criar uma sala oca própria; altura, espessura das paredes e mais em Configurações do projeto > addons/csg_blockout/room (clique duplo para manter a ferramenta)", "ru": "Комната: протяните пол и отпустите — получится отдельная полая комната; высота, толщина стен и прочее в настройках проекта addons/csg_blockout/room (двойной щелчок — оставить инструмент)",
+	},
+	"DRAW_CUT_TOOLTIP": {
+		"zh": "切割：在物体表面拖出切口，松开即贯穿切开（双击按钮可连续使用）", "en": "Cut: drag out an opening on an object's surface and release to cut through it (double-click to keep the tool on)", "ja": "切り抜き：オブジェクトの面で開口をドラッグして離すと貫通して切り抜く（ダブルクリックで連続使用）", "ko": "자르기: 물체 표면에서 구멍을 드래그하고 놓으면 관통해서 잘라냅니다 (더블 클릭하면 계속 사용)",
+		"es": "Cortar: arrastra una abertura sobre la superficie de un objeto y suelta para atravesarlo (doble clic para mantener la herramienta)", "pt": "Cortar: arraste uma abertura na superfície de um objeto e solte para atravessá-lo (clique duplo para manter a ferramenta)", "ru": "Вырез: протяните проём по поверхности объекта и отпустите, чтобы прорезать его насквозь (двойной щелчок — оставить инструмент)",
+	},
+	"OPENING_DOOR_TOOLTIP": {
+		"zh": "门：点击墙面开出门洞，自动落地、按墙厚切穿（双击按钮可连续使用）", "en": "Door: click a wall to cut a doorway, dropped to the floor and cut through the wall (double-click to keep the tool on)", "ja": "ドア：壁をクリックして床まで壁厚を貫通する開口を切る（ダブルクリックで連続使用）", "ko": "문: 벽을 클릭해 바닥까지 벽을 관통하는 문 구멍을 뚫기 (더블 클릭하면 계속 사용)",
+		"es": "Puerta: haz clic en un muro para abrir un hueco a ras de suelo que lo atraviesa (doble clic para mantener la herramienta)", "pt": "Porta: clique numa parede para abrir um vão no nível do chão que a atravessa (clique duplo para manter a ferramenta)", "ru": "Дверь: щёлкните по стене, чтобы вырезать проём от пола насквозь (двойной щелчок — оставить инструмент)",
+	},
+	"OPENING_WINDOW_TOOLTIP": {
+		"zh": "窗：点击墙面按窗台高度开出窗洞（双击按钮可连续使用）", "en": "Window: click a wall to cut a window at sill height (double-click to keep the tool on)", "ja": "窓：壁をクリックして窓台の高さに開口を切る（ダブルクリックで連続使用）", "ko": "창문: 벽을 클릭해 창턱 높이에 창 구멍 뚫기 (더블 클릭하면 계속 사용)",
+		"es": "Ventana: haz clic en un muro para abrir una ventana a la altura del alféizar (doble clic para mantener la herramienta)", "pt": "Janela: clique numa parede para abrir uma janela na altura do peitoril (clique duplo para manter a ferramenta)", "ru": "Окно: щёлкните по стене, чтобы вырезать окно на высоте подоконника (двойной щелчок — оставить инструмент)",
+	},
+	"STEP_DRAW_BOX": {
+		"zh": "在表面上拖出底面", "en": "Drag out the base on a surface", "ja": "面の上で底面をドラッグ", "ko": "표면 위에서 밑면을 드래그",
+		"es": "Arrastra la base sobre una superficie", "pt": "Arraste a base sobre uma superfície", "ru": "Протяните основание по поверхности",
+	},
+	"STEP_DRAW_ROOM": {
+		"zh": "拖出房间的地面", "en": "Drag out the room's floor", "ja": "部屋の床をドラッグ", "ko": "방의 바닥을 드래그",
+		"es": "Arrastra el suelo de la habitación", "pt": "Arraste o piso da sala", "ru": "Протяните пол комнаты",
+	},
+	"STEP_DRAW_CUT": {
+		"zh": "在物体表面上拖出切口", "en": "Drag out the cut on a surface", "ja": "面の上で切り抜きをドラッグ", "ko": "표면 위에서 잘라낼 영역을 드래그",
+		"es": "Arrastra el corte sobre una superficie", "pt": "Arraste o corte sobre uma superfície", "ru": "Протяните вырез по поверхности",
+	},
+	"STEP_RELEASE": {
+		"zh": "松开即完成", "en": "Release to finish", "ja": "離すと完成", "ko": "놓으면 완성",
+		"es": "Suelta para terminar", "pt": "Solte para concluir", "ru": "Отпустите, чтобы закончить",
+	},
+	"STEP_CUT_NEEDS_SURFACE": {
+		"zh": "切口要从物体表面开始拖", "en": "Start the cut on an object's surface", "ja": "切り抜きはオブジェクトの面から始めてください", "ko": "자르기는 물체 표면에서 시작하세요",
+		"es": "Empieza el corte sobre la superficie de un objeto", "pt": "Comece o corte na superfície de um objeto", "ru": "Начните вырез на поверхности объекта",
+	},
+	"STEP_OPENING_HOVER": {
+		"zh": "移到墙面上", "en": "Move onto a wall", "ja": "壁の上へ", "ko": "벽 위로 이동",
+		"es": "Pasa sobre un muro", "pt": "Passe sobre uma parede", "ru": "Наведите на стену",
+	},
+	"STEP_DOOR_CLICK": {
+		"zh": "点击开门", "en": "Click to cut the door", "ja": "クリックでドアを開ける", "ko": "클릭해서 문 뚫기",
+		"es": "Haz clic para abrir la puerta", "pt": "Clique para abrir a porta", "ru": "Щёлкните, чтобы вырезать дверь",
+	},
+	"STEP_WINDOW_CLICK": {
+		"zh": "点击开窗", "en": "Click to cut the window", "ja": "クリックで窓を開ける", "ko": "클릭해서 창문 뚫기",
+		"es": "Haz clic para abrir la ventana", "pt": "Clique para abrir a janela", "ru": "Щёлкните, чтобы вырезать окно",
+	},
+	"STEP_ARRAY_AXIS": {
+		"zh": "沿 X、Y 或 Z 移动鼠标", "en": "Move the mouse along X, Y or Z", "ja": "X・Y・Z に沿ってマウスを動かす", "ko": "X, Y, Z 방향으로 마우스 이동",
+		"es": "Mueve el ratón a lo largo de X, Y o Z", "pt": "Mova o mouse ao longo de X, Y ou Z", "ru": "Ведите мышь вдоль X, Y или Z",
+	},
+	"STEP_ARRAY_CLICK": {
+		"zh": "点击生成 %d 份", "en": "Click to make %d copies", "ja": "クリックで %d 個作成", "ko": "클릭해서 %d개 만들기",
+		"es": "Haz clic para crear %d copias", "pt": "Clique para criar %d cópias", "ru": "Щёлкните, чтобы создать копий: %d",
+	},
+	"TAG_SEPARATE": {
+		"zh": "单独放置", "en": "Separate", "ja": "単独で配置", "ko": "따로 배치",
+		"es": "Aparte", "pt": "Separado", "ru": "Отдельно",
+	},
+	"TAG_LOCK_AXIS": {
+		"zh": "锁轴", "en": "Lock axis", "ja": "軸固定", "ko": "축 고정",
+		"es": "Fijar eje", "pt": "Travar eixo", "ru": "Ось",
+	},
+	"TAG_GAP": {
+		"zh": "间距 %s m", "en": "Gap %s m", "ja": "間隔 %s m", "ko": "간격 %s m",
+		"es": "Separación %s m", "pt": "Espaço %s m", "ru": "Зазор %s м",
+	},
+	"TAG_LOCKED": {
+		"zh": "连续使用", "en": "Repeat", "ja": "連続", "ko": "연속",
+		"es": "Repetir", "pt": "Repetir", "ru": "Повтор",
+	},
+	"KEY_EXIT": {
+		"zh": "退出", "en": "Exit", "ja": "終了", "ko": "종료",
+		"es": "Salir", "pt": "Sair", "ru": "Выход",
 	},
 }

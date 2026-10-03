@@ -1,59 +1,86 @@
 @tool
 class_name CsgBlockoutDrawTool
 extends CsgBlockoutTool
-## Draw a box (or a room) straight in the viewport: drag a rectangle on any surface
-## or the ground, release, move the mouse to set the height, click to confirm.
-## The current default operation applies, so Subtraction mode is the cut tool: the
-## box extrudes into the surface and lands in the combiner that owns it.
+## Draw in the viewport with one gesture: drag a rectangle on any surface or the
+## ground and release, done.
+##   BOX  adds a block, as tall as the last box you adjusted (1 m at first);
+##   ROOM adds a hollow room as its own CSG tree, as tall as Project Settings say;
+##   CUT  carves into the surface it starts on, through the solid behind it.
+## The result is selected with arrows on its faces, so the height is one drag away.
+## A click without dragging leaves the tool and selects what's under the cursor. The
+## tool ends after one shape unless it was started locked (double-click its button).
 
-enum Mode { BOX, ROOM }
-enum State { IDLE, BASE, HEIGHT }
+enum Mode { BOX, ROOM, CUT }
+enum State { IDLE, PRESSED, BASE }
 
-const BASE_PREVIEW_THICKNESS: float = 0.02
-## Cutters reach this far past the surface they start on, avoiding coplanar faces.
+## Mouse travel (px) before a press becomes a drag.
+const DRAG_THRESHOLD: float = 5.0
+## Cutters reach this far past the faces they cut through, avoiding coplanar faces.
 const CUT_EPSILON: float = 0.01
+const MAX_CUT_DEPTH: float = 20.0
+const DEFAULT_BOX_HEIGHT: float = 1.0
+const META_BOX_HEIGHT: String = "draw_box_height"
+const ACCENT_ADD: Color = Color(0.35, 0.62, 1.0)
+const ACCENT_CUT: Color = Color(1.0, 0.42, 0.36)
+
+## The last box drawn: giving it a new height makes that the next default.
+static var _last_box: WeakRef = null
 
 var mode: Mode = Mode.BOX
 var state: State = State.IDLE
 
 var _hover: CsgBlockoutRaycast.Hit
 var _start_hit: CsgBlockoutRaycast.Hit
+var _press_pos: Vector2 = Vector2.ZERO
 var _origin: Vector3 = Vector3.ZERO
 var _basis: Basis = Basis.IDENTITY
 var _u: Vector2 = Vector2.ZERO # rectangle extent along _basis.x (min, max)
 var _v: Vector2 = Vector2.ZERO # rectangle extent along _basis.z (min, max)
-var _height: float = 0.0
-var _last_height: float = 0.0
+var _cut_depth: float = 0.0
+## Shift while drawing a box: its own object instead of joining the tree below.
+var _separate: bool = false
 var _ghost: CsgBlockoutGhost = CsgBlockoutGhost.new()
 
 func get_id() -> StringName:
-	return &"draw_room" if mode == Mode.ROOM else &"draw_box"
+	match mode:
+		Mode.ROOM:
+			return &"draw_room"
+		Mode.CUT:
+			return &"draw_cut"
+	return &"draw_box"
 
 func activate() -> void:
-	state = State.IDLE
+	_reset()
 
 func deactivate() -> void:
-	state = State.IDLE
-	_ghost.clear()
+	_reset()
 	_hover = null
 
-func cancel() -> void:
-	if state != State.IDLE:
-		state = State.IDLE
-		_ghost.clear()
-	else:
-		manager.deactivate(self)
+func _reset() -> void:
+	state = State.IDLE
+	_separate = false
+	_ghost.clear()
 
-func _op() -> CSGShape3D.Operation:
-	if mode == Mode.ROOM:
-		return CSGShape3D.OPERATION_UNION
-	var config: CsgBlockoutConfig = CsgBlockoutConfig.get_config()
-	return config.default_operation if config else CSGShape3D.OPERATION_UNION
+static func box_height() -> float:
+	var v: Variant = EditorInterface.get_editor_settings().get_project_metadata(CsgBlockoutGrid.META_SECTION, META_BOX_HEIGHT, DEFAULT_BOX_HEIGHT)
+	return maxf(float(v), 0.01) if (v is float or v is int) else DEFAULT_BOX_HEIGHT
 
-func _is_cut() -> bool:
-	return _op() == CSGShape3D.OPERATION_SUBTRACTION
+## Called when a box gets a new size from the face arrows or a dimension label: a new
+## height on the box just drawn becomes the height of the next one.
+static func note_resized(node: Node, size: Vector3) -> void:
+	if _last_box == null or _last_box.get_ref() != node:
+		return
+	EditorInterface.get_editor_settings().set_project_metadata(CsgBlockoutGrid.META_SECTION, META_BOX_HEIGHT, size.y)
 
 func input(camera: Camera3D, event: InputEvent) -> int:
+	if event is InputEventKey:
+		var key: InputEventKey = event as InputEventKey
+		if key.keycode == KEY_SHIFT and mode == Mode.BOX and _separate != key.pressed:
+			_separate = key.pressed
+			if state == State.BASE:
+				_show_ghost()
+			manager.refresh()
+		return PASS
 	if event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event as InputEventMouseMotion
 		match state:
@@ -61,55 +88,76 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 				_hover = manager.cast(mm.position)
 				manager.refresh()
 				return PASS
-			State.BASE:
+			State.PRESSED:
+				if mm.position.distance_to(_press_pos) < DRAG_THRESHOLD:
+					return STOP
+				_start_base()
 				_update_base(camera, mm.position, mm)
 				return STOP
-			State.HEIGHT:
-				_update_height(camera, mm.position, mm)
+			State.BASE:
+				if mode == Mode.BOX:
+					_separate = mm.shift_pressed
+				_update_base(camera, mm.position, mm)
 				return STOP
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
 		if mb.button_index != MOUSE_BUTTON_LEFT:
 			return PASS
 		if mb.pressed:
-			match state:
-				State.IDLE:
-					return _begin(camera, mb.position)
-				State.HEIGHT:
-					_commit()
-					return STOP
-		else:
-			if state == State.BASE:
-				if _u.y - _u.x < 0.0001 or _v.y - _v.x < 0.0001:
-					state = State.IDLE
-					_ghost.clear()
+			if state == State.IDLE:
+				var hit: CsgBlockoutRaycast.Hit = manager.cast(mb.position)
+				if hit.is_valid():
+					_start_hit = hit
+					_press_pos = mb.position
+					state = State.PRESSED
+			return STOP
+		match state:
+			State.PRESSED:
+				# A click, not a drag: leave the tool and select what was clicked.
+				_reset()
+				manager.deactivate(self)
+				manager.select_at(mb.position)
+			State.BASE:
+				if mode == Mode.BOX:
+					_separate = mb.shift_pressed
+				var fp: Vector2 = _footprint()
+				if fp.x < 0.0001 or fp.y < 0.0001:
+					# Too thin to be a shape: stay, so the next drag can try again.
+					_reset()
+				elif mode == Mode.CUT and not _cut_valid():
+					_reset()
+					CsgBlockoutStatus.show(CsgBlockoutI18n.t("STEP_CUT_NEEDS_SURFACE"), true)
 				else:
-					state = State.HEIGHT
-					_height = _last_height if not is_zero_approx(_last_height) else _default_height()
-					if _is_cut():
-						_height = -absf(_height)
-					_show_ghost()
-				return STOP
-			return STOP if state != State.IDLE else PASS
+					_commit()
+					_reset()
+					manager.finish(self)
+		return STOP
 	return PASS
 
-func _default_height() -> float:
+func _start_base() -> void:
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
-	return grid.size * (2.0 if mode == Mode.BOX else 3.0)
-
-func _begin(_camera: Camera3D, pos: Vector2) -> int:
-	var hit: CsgBlockoutRaycast.Hit = manager.cast(pos)
-	if not hit.is_valid():
-		return STOP
-	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
-	_start_hit = hit
-	_basis = CsgBlockoutNodeFactory.basis_from_normal(hit.normal)
-	_origin = grid.snap_in_plane(hit.position, Vector3.ZERO, _basis, grid.snap_enabled)
+	_basis = CsgBlockoutNodeFactory.basis_from_normal(_start_hit.normal)
+	_origin = grid.snap_in_plane(_start_hit.position, Vector3.ZERO, _basis, grid.snap_enabled)
 	_u = Vector2.ZERO
 	_v = Vector2.ZERO
+	_cut_depth = _measure_cut_depth() if mode == Mode.CUT else 0.0
 	state = State.BASE
-	_show_ghost()
-	return STOP
+
+## A cut has to start on a CSG surface: there is nothing to cut in empty space.
+func _cut_valid() -> bool:
+	return _start_hit != null and _start_hit.is_valid() and not _start_hit.on_plane and _start_hit.collider is CSGShape3D
+
+## How thick the solid under the cut's start is: from just inside its surface to where
+## a ray through it comes out again.
+func _measure_cut_depth() -> float:
+	var fallback: float = CsgBlockoutGrid.get_grid().size
+	if not _cut_valid():
+		return fallback
+	var n: Vector3 = _start_hit.normal
+	var through: CsgBlockoutRaycast.Hit = CsgBlockoutRaycast.cast_ray(_start_hit.position - n * 0.002, -n, [], false)
+	if through.is_valid() and through.distance < MAX_CUT_DEPTH:
+		return through.distance + 0.002
+	return fallback
 
 ## Point on the drawing plane under the cursor, snapped, as plane (u, v).
 func _plane_uv(camera: Camera3D, pos: Vector2, event: InputEvent) -> Variant:
@@ -132,25 +180,14 @@ func _update_base(camera: Camera3D, pos: Vector2, event: InputEvent) -> void:
 	_v = Vector2(minf(0.0, c.y), maxf(0.0, c.y))
 	_show_ghost()
 
-func _update_height(camera: Camera3D, pos: Vector2, event: InputEvent) -> void:
-	var rp: Vector2 = manager.ray_pos(pos)
-	var o: Vector3 = camera.project_ray_origin(rp)
-	var d: Vector3 = camera.project_ray_normal(rp)
-	var center: Vector3 = _rect_center()
-	var n: Vector3 = _basis.y
-	# Closest point between the extrusion axis and the mouse ray.
-	var w0: Vector3 = center - o
-	var b: float = n.dot(d)
-	var denom: float = 1.0 - b * b
-	if denom < 0.0001:
-		return
-	var t: float = (b * d.dot(w0) - n.dot(w0)) / denom
-	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
-	var h: float = grid.snap_value(t, grid.is_active(event))
-	if is_zero_approx(h):
-		h = grid.size * (-1.0 if _is_cut() else 1.0)
-	_height = h
-	_show_ghost()
+## Signed extrusion along the surface normal (negative: into the surface).
+func _height() -> float:
+	match mode:
+		Mode.ROOM:
+			return CsgBlockoutConfig.get_config().get_room_height()
+		Mode.CUT:
+			return -_cut_depth
+	return box_height()
 
 func _rect_center() -> Vector3:
 	return _origin + _basis.x * ((_u.x + _u.y) * 0.5) + _basis.z * ((_v.x + _v.y) * 0.5)
@@ -161,25 +198,25 @@ func _footprint() -> Vector2:
 ## Final box in world space: {"xform": Transform3D (basis unscaled), "size": Vector3}.
 func _box() -> Dictionary:
 	var fp: Vector2 = _footprint()
-	var h: float = _height if state == State.HEIGHT else BASE_PREVIEW_THICKNESS
+	var h: float = _height()
 	var size: Vector3 = Vector3(fp.x, absf(h), fp.y)
 	var center: Vector3 = _rect_center() + _basis.y * (h * 0.5)
-	if state == State.HEIGHT and _is_cut() and h < 0.0:
-		# Reach slightly out of the surface the cut starts on.
-		size.y += CUT_EPSILON
-		center += _basis.y * (CUT_EPSILON * 0.5)
+	if mode == Mode.CUT:
+		# Reach past both faces it cuts through.
+		size.y += CUT_EPSILON * 2.0
 	return {"xform": Transform3D(_basis, center), "size": size}
 
 func _show_ghost() -> void:
+	if state != State.BASE:
+		_ghost.clear()
+		return
 	var box: Dictionary = _box()
 	var xf: Transform3D = box["xform"]
-	var scaled: Transform3D = Transform3D(xf.basis.scaled_local(box["size"]), xf.origin)
-	var style: CsgBlockoutGhost.Style = CsgBlockoutGhost.Style.SUBTRACT if _is_cut() else CsgBlockoutGhost.Style.UNION
-	var boxes: Array[Transform3D] = [scaled]
-	if mode == Mode.ROOM and state == State.HEIGHT:
+	var boxes: Array[Transform3D] = [Transform3D(xf.basis.scaled_local(box["size"]), xf.origin)]
+	if mode == Mode.ROOM:
 		var inner: Dictionary = _room_inner(box["size"])
 		boxes.append(Transform3D(xf.basis.scaled_local(inner["size"]), xf * (inner["offset"] as Vector3)))
-	_ghost.show_boxes(boxes, style)
+	_ghost.show_boxes(boxes, CsgBlockoutGhost.Style.SUBTRACT if mode == Mode.CUT else CsgBlockoutGhost.Style.UNION)
 	manager.refresh()
 
 ## Hollow part of a room, relative to the room center: {"size", "offset"}.
@@ -194,15 +231,32 @@ func _room_inner(outer: Vector3) -> Dictionary:
 	inner.y = maxf(top - bottom, 0.01)
 	return {"size": inner, "offset": Vector3(0.0, (bottom + top) * 0.5, 0.0)}
 
+## Where the shape goes: {"parent", "index", "wrap"}. Rooms are always their own tree;
+## boxes join the tree they're drawn on (Shift: their own object); cuts go into the
+## tree of the surface they cut.
+func _target() -> Dictionary:
+	var root: Node = CsgBlockoutSceneOps.edited_root()
+	if mode == Mode.ROOM or (mode == Mode.BOX and _separate):
+		return {"parent": root, "index": -1, "wrap": null}
+	var op: CSGShape3D.Operation = CSGShape3D.OPERATION_SUBTRACTION if mode == Mode.CUT else CSGShape3D.OPERATION_UNION
+	return CsgBlockoutNodeFactory.parent_for_hit(_start_hit, op)
+
+## Name of the CSG tree the shape will join, for the chip ("" for a new tree).
+func _target_tree_name() -> String:
+	if _start_hit == null or not (_start_hit.collider is CSGShape3D):
+		return ""
+	if mode == Mode.ROOM or (mode == Mode.BOX and _separate):
+		return ""
+	var surface: Node = _start_hit.solid_shape if _start_hit.solid_shape != null else _start_hit.collider
+	var tree: CSGShape3D = CsgBlockoutShapeInfo.csg_root_of(surface)
+	return String(tree.name) if tree != null else ""
+
 func _commit() -> void:
 	var box: Dictionary = _box()
 	var xf: Transform3D = box["xform"]
 	var size: Vector3 = box["size"]
-	_last_height = _height
-	var op: CSGShape3D.Operation = _op()
-	var target: Dictionary = CsgBlockoutNodeFactory.parent_for_hit(_start_hit, op)
-	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(
-		CsgBlockoutI18n.tf("CREATE_NODE", [CsgBlockoutI18n.t("ROOM" if mode == Mode.ROOM else "BOX")]))
+	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(CsgBlockoutI18n.tf("CREATE_NODE", [_title()]))
+	var target: Dictionary = _target()
 	var parent: Node = target["parent"]
 	if target["wrap"] != null:
 		parent = CsgBlockoutNodeFactory.wrap_in_combiner(action, target["wrap"])
@@ -227,6 +281,7 @@ func _commit() -> void:
 		room.add_child(hollow)
 		created = room
 	else:
+		var op: CSGShape3D.Operation = CSGShape3D.OPERATION_SUBTRACTION if mode == Mode.CUT else CSGShape3D.OPERATION_UNION
 		var shape: CSGBox3D = CSGBox3D.new()
 		shape.size = size
 		shape.operation = op
@@ -236,8 +291,8 @@ func _commit() -> void:
 	action.add_node(parent, created, target["index"], xf)
 	action.select([created])
 	action.commit()
-	state = State.IDLE
-	_ghost.clear()
+	if mode == Mode.BOX:
+		_last_box = weakref(created)
 
 ## Readable default name from the box proportions (refined by the outliner later).
 func _box_name(size: Vector3, op: CSGShape3D.Operation) -> String:
@@ -251,19 +306,51 @@ func _box_name(size: Vector3, op: CSGShape3D.Operation) -> String:
 		return "Wall"
 	return "Block"
 
+func _title() -> String:
+	match mode:
+		Mode.ROOM:
+			return CsgBlockoutI18n.t("TOOL_ROOM")
+		Mode.CUT:
+			return CsgBlockoutI18n.t("TOOL_CUT")
+	return CsgBlockoutI18n.t("TOOL_BOX")
+
+func chip() -> Dictionary:
+	var accent: Color = ACCENT_CUT if mode == Mode.CUT else ACCENT_ADD
+	var step: String
+	var warn: bool = false
+	var tags: Array = []
+	if state == State.BASE:
+		if mode == Mode.CUT and not _cut_valid():
+			step = CsgBlockoutI18n.t("STEP_CUT_NEEDS_SURFACE")
+			warn = true
+		else:
+			step = CsgBlockoutI18n.t("STEP_RELEASE")
+			var tree: String = _target_tree_name()
+			if not tree.is_empty():
+				step += "  → " + tree
+			if mode == Mode.BOX and (_separate or not tree.is_empty()):
+				tags.append({"key": "Shift", "label": CsgBlockoutI18n.t("TAG_SEPARATE"), "on": _separate})
+	else:
+		match mode:
+			Mode.ROOM:
+				step = CsgBlockoutI18n.t("STEP_DRAW_ROOM")
+			Mode.CUT:
+				step = CsgBlockoutI18n.t("STEP_DRAW_CUT")
+			_:
+				step = CsgBlockoutI18n.t("STEP_DRAW_BOX")
+	return {"title": _title(), "step": step, "accent": accent, "warn": warn, "tags": tags}
+
 func draw_overlay(overlay: Control, camera: Camera3D) -> void:
 	if camera == null:
 		return
 	var scale: float = EditorInterface.get_editor_scale()
-	var font: Font = overlay.get_theme_font(&"font", &"Label")
-	var font_size: int = int(round(13 * scale))
-	if state == State.IDLE:
+	var color: Color = ACCENT_CUT if mode == Mode.CUT else ACCENT_ADD
+	if state != State.BASE:
 		if _hover != null and _hover.is_valid() and not camera.is_position_behind(_hover.position):
 			var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
 			var b: Basis = CsgBlockoutNodeFactory.basis_from_normal(_hover.normal)
 			var p: Vector3 = grid.snap_in_plane(_hover.position, Vector3.ZERO, b, grid.snap_enabled)
 			var sp: Vector2 = camera.unproject_position(p)
-			var color: Color = Color(1.0, 0.45, 0.4) if _is_cut() else Color(0.55, 0.8, 1.0)
 			overlay.draw_arc(sp, 6.0 * scale, 0.0, TAU, 24, color, 2.0 * scale, true)
 			overlay.draw_line(sp - Vector2(10, 0) * scale, sp + Vector2(10, 0) * scale, color, 1.0 * scale)
 			overlay.draw_line(sp - Vector2(0, 10) * scale, sp + Vector2(0, 10) * scale, color, 1.0 * scale)
@@ -272,20 +359,10 @@ func draw_overlay(overlay: Control, camera: Camera3D) -> void:
 	var center: Vector3 = (box["xform"] as Transform3D).origin
 	if camera.is_position_behind(center):
 		return
-	var fp: Vector2 = _footprint()
-	var text: String = "%s × %s m" % [_fmt(fp.x), _fmt(fp.y)]
-	if state == State.HEIGHT:
-		text = "%s × %s × %s m" % [_fmt(fp.x), _fmt(fp.y), _fmt(absf(_height))]
-	CsgBlockoutToolManager.draw_label(overlay, font, font_size, camera.unproject_position(center) + Vector2(12, -12) * scale, text, true)
+	var size: Vector3 = box["size"]
+	var font: Font = overlay.get_theme_font(&"font", &"Label")
+	var text: String = "%s × %s × %s m" % [_fmt(size.x), _fmt(size.z), _fmt(absf(_height()))]
+	CsgBlockoutToolManager.draw_label(overlay, font, int(round(13 * scale)), camera.unproject_position(center) + Vector2(12, -12) * scale, text, true)
 
 static func _fmt(v: float) -> String:
 	return String.num(v, 2).trim_suffix(".00") if absf(v - roundf(v)) < 0.005 else String.num(v, 2)
-
-func hint() -> String:
-	match state:
-		State.IDLE:
-			return CsgBlockoutI18n.t("HINT_DRAW_IDLE")
-		State.BASE:
-			return CsgBlockoutI18n.t("HINT_DRAW_BASE")
-		_:
-			return CsgBlockoutI18n.t("HINT_DRAW_HEIGHT")

@@ -25,6 +25,7 @@ const SETTING_SPRINT_JUMP_DISTANCE: String = "addons/csg_blockout/player_metrics
 const SETTING_ROOM_WALL_THICKNESS: String = "addons/csg_blockout/room/wall_thickness"
 const SETTING_ROOM_FLOOR_THICKNESS: String = "addons/csg_blockout/room/floor_thickness"
 const SETTING_ROOM_OPEN_TOP: String = "addons/csg_blockout/room/open_top"
+const SETTING_ROOM_HEIGHT: String = "addons/csg_blockout/room/height"
 const SETTING_DOOR_SIZE: String = "addons/csg_blockout/openings/door_size"
 const SETTING_WINDOW_SIZE: String = "addons/csg_blockout/openings/window_size"
 const SETTING_WINDOW_SILL: String = "addons/csg_blockout/openings/window_sill_height"
@@ -48,6 +49,7 @@ const DEFAULT_STRIP_SOURCE_ON_EXPORT: bool = true
 const DEFAULT_ROOM_WALL_THICKNESS: float = 0.25
 const DEFAULT_ROOM_FLOOR_THICKNESS: float = 0.25
 const DEFAULT_ROOM_OPEN_TOP: bool = true
+const DEFAULT_ROOM_HEIGHT: float = 3.0
 
 # Default values
 const DEFAULT_ACTION_KEY: Key = KEY_SHIFT
@@ -232,6 +234,7 @@ func _ensure_settings_exist() -> void:
 	_register(SETTING_ROOM_WALL_THICKNESS, DEFAULT_ROOM_WALL_THICKNESS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,5.0,0.01,or_greater")
 	_register(SETTING_ROOM_FLOOR_THICKNESS, DEFAULT_ROOM_FLOOR_THICKNESS, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.01,5.0,0.01,or_greater")
 	_register(SETTING_ROOM_OPEN_TOP, DEFAULT_ROOM_OPEN_TOP, TYPE_BOOL)
+	_register(SETTING_ROOM_HEIGHT, DEFAULT_ROOM_HEIGHT, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.1,20.0,0.05,or_greater")
 	_register(SETTING_DOOR_SIZE, DEFAULT_DOOR_SIZE, TYPE_VECTOR2)
 	_register(SETTING_WINDOW_SIZE, DEFAULT_WINDOW_SIZE, TYPE_VECTOR2)
 	_register(SETTING_WINDOW_SILL, DEFAULT_WINDOW_SILL, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.0,5.0,0.05,or_greater")
@@ -272,6 +275,10 @@ func get_room_floor_thickness() -> float:
 
 func get_room_open_top() -> bool:
 	return bool(_get_setting(SETTING_ROOM_OPEN_TOP, DEFAULT_ROOM_OPEN_TOP))
+
+## Height of rooms drawn with the Room tool (adjust afterwards with the face arrows).
+func get_room_height() -> float:
+	return get_positive_float(SETTING_ROOM_HEIGHT, DEFAULT_ROOM_HEIGHT)
 
 func _get_size(path: String, default_value: Vector2) -> Vector2:
 	var v: Variant = _get_setting(path, default_value)

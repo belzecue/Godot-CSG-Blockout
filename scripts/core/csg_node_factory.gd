@@ -99,18 +99,15 @@ static func resolve_parent(node: Node3D) -> Dictionary:
 		return {"parent": first.get_parent(), "index": first.get_index() + 1, "anchor": first}
 	return {"parent": first, "index": -1, "anchor": first}
 
-## Where a shape drawn on `hit` should go: {"parent", "index", "wrap"}.
-## - A selected combiner always receives it.
-## - Otherwise it joins the combiner that owns the surface it was drawn on, so a
-##   subtraction cuts that geometry. A lone root primitive is returned as "wrap":
-##   the caller puts it under a new combiner first (subtraction needs a parent).
+## Where a shape drawn on `hit` should go: {"parent", "index", "wrap"}. Only the
+## surface decides (never the selection, which may be somewhere else entirely):
+## - It joins the combiner that owns the surface it was drawn on, so a subtraction
+##   cuts that geometry. A lone root primitive is returned as "wrap": the caller
+##   puts it under a new combiner first (subtraction needs a parent).
 ## - Drawn in empty space: under the scene root.
 ## New shapes are appended so subtractions apply to everything before them.
 static func parent_for_hit(hit: CsgBlockoutRaycast.Hit, op: CSGShape3D.Operation) -> Dictionary:
 	var root: Node = CsgBlockoutSceneOps.edited_root()
-	for n: Node in EditorInterface.get_selection().get_selected_nodes():
-		if n is CSGCombiner3D and n != root:
-			return {"parent": n, "index": -1, "wrap": null}
 	if hit != null and hit.is_valid() and hit.collider is CSGShape3D:
 		var surface: CSGShape3D = hit.solid_shape if hit.solid_shape != null else hit.shape
 		if surface == null:

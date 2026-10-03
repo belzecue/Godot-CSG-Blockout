@@ -25,6 +25,10 @@ var pie_menu_tab_pressed_time: int = 0
 # are placed on the surface under that point.
 var _pie_camera: Camera3D
 var _pie_screen_pos: Vector2 = Vector2.ZERO
+## Second click on the same tool button within this time keeps the tool on.
+const TOOL_DOUBLE_CLICK_MS: int = 400
+var _last_tool_click: StringName = &""
+var _last_tool_click_time: int = 0
 
 func _get_shape_menu() -> Array[Dictionary]:
 	return [
@@ -49,8 +53,9 @@ func _get_pie_menu_items() -> Array[Dictionary]:
 		{
 			"label": CsgBlockoutI18n.t("DRAW_MENU"), "type": "submenu",
 			"children": [
-				{"label": CsgBlockoutI18n.t("BOX"), "type": "action", "action_id": &"draw_box"},
-				{"label": CsgBlockoutI18n.t("ROOM"), "type": "action", "action_id": &"draw_room"},
+				{"label": CsgBlockoutI18n.t("TOOL_BOX"), "type": "action", "action_id": &"draw_box"},
+				{"label": CsgBlockoutI18n.t("TOOL_ROOM"), "type": "action", "action_id": &"draw_room"},
+				{"label": CsgBlockoutI18n.t("TOOL_CUT"), "type": "action", "action_id": &"draw_cut"},
 			]
 		},
 		{
@@ -264,7 +269,7 @@ func _on_pie_menu_action_triggered(item: Dictionary) -> void:
 		CsgBlockoutNodeFactory.set_operation_on_selection(op)
 
 	elif action_type == "action":
-		_on_action_requested(item.get("action_id", &""))
+		_on_action_requested(item.get("action_id", &""), true)
 
 	elif action_type == "create_csg":
 		var csg_type: String = item.get("csg_type", "")
@@ -278,17 +283,32 @@ func _on_pie_menu_action_triggered(item: Dictionary) -> void:
 func _on_create_requested(csg_type: String) -> void:
 	CsgBlockoutNodeFactory.create(csg_type)
 
-## Tool buttons and menu entries (top bar, pie menu) land here.
-func _on_action_requested(action_id: StringName) -> void:
+## Modal tools behind each tool action: [tool, mode].
+func _tool_for(action_id: StringName) -> Array:
 	match action_id:
 		&"draw_box":
-			_toggle_tool(_draw_tool, CsgBlockoutDrawTool.Mode.BOX)
+			return [_draw_tool, CsgBlockoutDrawTool.Mode.BOX]
 		&"draw_room":
-			_toggle_tool(_draw_tool, CsgBlockoutDrawTool.Mode.ROOM)
+			return [_draw_tool, CsgBlockoutDrawTool.Mode.ROOM]
+		&"draw_cut":
+			return [_draw_tool, CsgBlockoutDrawTool.Mode.CUT]
 		&"opening_door":
-			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.DOOR)
+			return [_opening_tool, CsgBlockoutOpeningTool.Mode.DOOR]
 		&"opening_window":
-			_toggle_tool(_opening_tool, CsgBlockoutOpeningTool.Mode.WINDOW)
+			return [_opening_tool, CsgBlockoutOpeningTool.Mode.WINDOW]
+	return []
+
+## Tool buttons and menu entries (top bar, sidebar, pie menu) land here. Buttons
+## toggle their tool; the pie menu always starts it.
+func _on_action_requested(action_id: StringName, from_pie: bool = false) -> void:
+	var tool_spec: Array = _tool_for(action_id)
+	if not tool_spec.is_empty():
+		if from_pie:
+			_start_tool(tool_spec[0], tool_spec[1])
+		else:
+			_toggle_tool(action_id, tool_spec[0], tool_spec[1])
+		return
+	match action_id:
 		&"snap_to_grid":
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
 		&"refresh_overlays":
@@ -332,15 +352,29 @@ func _viewport_center_hit() -> CsgBlockoutRaycast.Hit:
 	var hit: CsgBlockoutRaycast.Hit = CsgBlockoutRaycast.cast(cam, cam.get_viewport().get_visible_rect().get_center())
 	return hit if hit.is_valid() else null
 
-## Activates `tool` in `mode`, or turns it off when it is already active in that mode.
-func _toggle_tool(tool: CsgBlockoutTool, mode: int) -> void:
-	if tools.active == tool:
-		var same: bool = tool.get(&"mode") == mode
+## A tool button was clicked: start its tool for one result, or turn it off when
+## it's already on. A quick second click (double-click) keeps the tool on instead.
+func _toggle_tool(action_id: StringName, tool: CsgBlockoutTool, mode: int) -> void:
+	var now: int = Time.get_ticks_msec()
+	var same: bool = tools.active == tool and int(tool.get(&"mode")) == mode
+	if same and action_id == _last_tool_click and now - _last_tool_click_time < TOOL_DOUBLE_CLICK_MS:
+		_last_tool_click = &""
+		tools.set_locked(true)
+		# The second click toggled the button off; show the tool as on again.
+		tools.active_tool_changed.emit(tool.get_id())
+		return
+	_last_tool_click = action_id
+	_last_tool_click_time = now
+	if same:
 		tools.deactivate()
-		if same:
-			return
+		return
+	_start_tool(tool, mode)
+
+func _start_tool(tool: CsgBlockoutTool, mode: int, locked: bool = false) -> void:
+	if tools.active == tool:
+		tools.deactivate()
 	tool.set(&"mode", mode)
-	tools.activate(tool)
+	tools.activate(tool, locked)
 
 func _exit_tree() -> void:
 	if tools != null:

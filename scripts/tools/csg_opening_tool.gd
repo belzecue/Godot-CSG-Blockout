@@ -4,7 +4,11 @@ extends CsgBlockoutTool
 ## Click a wall to cut a door or a window. The cutter is aligned to the wall face,
 ## measured through the wall thickness, dropped to the floor (doors) or the sill
 ## height (windows), and appended to the combiner that owns the wall. An optional
-## frame (F while placing) is added after the cutter so it isn't cut away.
+## frame (F, or its tag in the chip) is added after the cutter so it isn't cut away.
+## Sizes come from Project Settings; the cut is selected afterwards, so its face
+## arrows and dimension labels adjust it. The wheel stays with the camera. The tool
+## ends after one opening unless it was started locked; clicking off a wall leaves
+## it and selects what was clicked.
 
 enum Mode { DOOR, WINDOW }
 
@@ -16,6 +20,7 @@ const CUT_MARGIN: float = 0.02
 const FRAME_PROTRUSION: float = 0.04
 const MAX_WALL_THICKNESS: float = 5.0
 const FALLBACK_THICKNESS: float = 0.5
+const ACCENT: Color = Color(1.0, 0.62, 0.25)
 
 var mode: Mode = Mode.DOOR
 var _size: Vector2 = Vector2.ZERO
@@ -42,30 +47,28 @@ func input(camera: Camera3D, event: InputEvent) -> int:
 		return PASS
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return PASS
 		if not mb.pressed:
-			var consumed: bool = mb.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
-			return STOP if consumed else PASS
-		var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
-		match mb.button_index:
-			MOUSE_BUTTON_LEFT:
-				_update(mb.position, event)
-				if not _placement.is_empty():
-					_commit()
-				return STOP
-			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
-				var delta: float = grid.size * (1.0 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0)
-				if mb.shift_pressed:
-					_size.y = maxf(_size.y + delta, grid.size)
-				else:
-					_size.x = maxf(_size.x + delta, grid.size)
-				_update(mb.position, event)
-				return STOP
+			return STOP
+		_update(mb.position, event)
+		if _placement.is_empty():
+			# Not on a wall: leave the tool and select what was clicked.
+			manager.deactivate(self)
+			manager.select_at(mb.position)
+		else:
+			_commit()
+			manager.finish(self)
+		return STOP
 	if event is InputEventKey and event.is_pressed() and not event.is_echo() and (event as InputEventKey).keycode == KEY_F:
-		_frame = not _frame
-		CsgBlockoutConfig.get_config().set_opening_frame(_frame)
-		_update(manager.mouse_pos, event)
+		_toggle_frame()
 		return STOP
 	return PASS
+
+func _toggle_frame() -> void:
+	_frame = not _frame
+	CsgBlockoutConfig.get_config().set_opening_frame(_frame)
+	_update(manager.mouse_pos, null)
 
 ## Recomputes where the opening would go for the cursor at `pos`.
 func _update(pos: Vector2, event: InputEvent) -> void:
@@ -180,10 +183,17 @@ func draw_overlay(overlay: Control, camera: Camera3D) -> void:
 		return
 	var scale: float = EditorInterface.get_editor_scale()
 	var font: Font = overlay.get_theme_font(&"font", &"Label")
-	var text: String = "%s %s × %s m" % [CsgBlockoutI18n.t("WINDOW" if mode == Mode.WINDOW else "DOOR"), CsgBlockoutDrawTool._fmt(_size.x), CsgBlockoutDrawTool._fmt(_size.y)]
-	if _frame:
-		text += " · " + CsgBlockoutI18n.t("FRAME")
+	var text: String = "%s × %s m" % [CsgBlockoutDrawTool._fmt(_size.x), CsgBlockoutDrawTool._fmt(_size.y)]
 	CsgBlockoutToolManager.draw_label(overlay, font, int(round(13 * scale)), camera.unproject_position(center) + Vector2(14, -14) * scale, text, true)
 
-func hint() -> String:
-	return CsgBlockoutI18n.t("HINT_OPENING")
+func chip() -> Dictionary:
+	var window: bool = mode == Mode.WINDOW
+	var step: String = CsgBlockoutI18n.t("STEP_OPENING_HOVER")
+	if not _placement.is_empty():
+		step = CsgBlockoutI18n.t("STEP_WINDOW_CLICK" if window else "STEP_DOOR_CLICK")
+	return {
+		"title": CsgBlockoutI18n.t("WINDOW" if window else "DOOR"),
+		"step": step,
+		"accent": ACCENT,
+		"tags": [{"key": "F", "label": CsgBlockoutI18n.t("FRAME"), "on": _frame, "toggle": _toggle_frame}],
+	}
