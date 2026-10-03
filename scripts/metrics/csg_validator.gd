@@ -62,6 +62,9 @@ static func run() -> Array[Dictionary]:
 	var max_slope: float = m["max_slope_angle"]
 	var stand: float = m["character_height"]
 	var crouch: float = minf(m["crouch_height"], stand)
+	# Ledges narrower than the capsule radius (window sills, wall tops) aren't checked.
+	var footing: float = float(m["capsule_radius"]) * 0.5
+	var footing_step: float = footing * tan(deg_to_rad(minf(max_slope, 80.0))) + 0.05
 	var surfaces: Array[Dictionary] = gather(scene_root)
 	var all_faces: PackedVector3Array = PackedVector3Array()
 	var owners: Array[Dictionary] = []
@@ -89,7 +92,9 @@ static func run() -> Array[Dictionary]:
 				continue
 			if angle > max_slope + 0.5:
 				marks.append({"kind": "slope", "tri": PackedVector3Array([a, b, c]), "normal": n})
-				_group(grouped, "slope", s["node"], angle, (a + b + c) / 3.0, true)
+				# Report the shape the slope belongs to (the ramp, not its whole tree).
+				var centroid: Vector3 = (a + b + c) / 3.0
+				_group(grouped, "slope", _closest_primitive(s["node"], centroid), angle, centroid, true)
 				continue
 			for sample: Vector3 in _grid_samples(a, b, c, n):
 				var hit: Dictionary = world_tri.intersect_ray(sample + n * SURFACE_OFFSET, Vector3.UP)
@@ -104,6 +109,8 @@ static func run() -> Array[Dictionary]:
 				var clearance: float = (hit["position"] as Vector3).y - sample.y
 				var kind: String = "blocked" if clearance < crouch else ("crouch" if clearance < stand else "")
 				if kind.is_empty():
+					continue
+				if not _has_footing(world_tri, all_faces, sample, footing, footing_step, clearance):
 					continue
 				marks.append({"kind": kind, "tri": _cell(sample, n), "normal": n})
 				# Report the shape that forms the low ceiling: that's what gets edited.
@@ -125,6 +132,11 @@ static func _ceiling_shape(owners: Array[Dictionary], face_index: int, point: Ve
 	for o: Dictionary in owners:
 		if face_index >= int(o["start"]):
 			owner_node = o["node"]
+	return _closest_primitive(owner_node, point)
+
+## The visible, non-cutting primitive of CSG tree `owner_node` whose surface is
+## closest to `point`; a frozen node (or anything else) is returned as is.
+static func _closest_primitive(owner_node: Node, point: Vector3) -> Node:
 	if owner_node is CSGShape3D:
 		var best: CSGShape3D = null
 		var best_d: float = INF
@@ -138,6 +150,28 @@ static func _ceiling_shape(owners: Array[Dictionary], face_index: int, point: Ve
 		if best != null:
 			return best
 	return owner_node
+
+## Whether someone could stand at `p`: `reach` away along X and along Z, the floor
+## goes on (on at least one side of each axis) within `step` of p's height. A sample
+## on a ledge narrower than that, like a window sill, has nothing on either side
+## across it. Rays start below the ceiling found above p (`clearance`).
+static func _has_footing(tri: TriangleMesh, faces: PackedVector3Array, p: Vector3, reach: float, step: float, clearance: float) -> bool:
+	var lift: float = minf(step + 0.1, clearance * 0.5)
+	for axis: Vector3 in [Vector3.RIGHT, Vector3.BACK]:
+		var supported: bool = false
+		for side: float in [-1.0, 1.0]:
+			var hit: Dictionary = tri.intersect_ray(p + axis * (side * reach) + Vector3.UP * lift, Vector3.DOWN)
+			if hit.is_empty():
+				continue
+			var fi: int = int(hit.get("face_index", -1)) * 3
+			if fi < 0 or fi + 2 >= faces.size() or Plane(faces[fi], faces[fi + 1], faces[fi + 2]).normal.y <= 0.0:
+				continue
+			if absf((hit["position"] as Vector3).y - p.y) <= step:
+				supported = true
+				break
+		if not supported:
+			return false
+	return true
 
 ## Aggregates findings per (node, kind): worst value and number of hits.
 static func _group(grouped: Dictionary, kind: String, node: Node, value: float, point: Vector3, worst_is_max: bool) -> void:

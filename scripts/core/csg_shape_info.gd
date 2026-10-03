@@ -174,10 +174,24 @@ static func surface_distance(n: Node3D, world_point: Vector3) -> float:
 		d = minf(maxf(q.x, q.y), 0.0) + q.max(Vector2.ZERO).length()
 	elif n is CSGSphere3D:
 		d = p.length() - (n as CSGSphere3D).radius
+	elif n is CSGPolygon3D and (n as CSGPolygon3D).mode == CSGPolygon3D.MODE_DEPTH and (n as CSGPolygon3D).polygon.size() >= 3:
+		d = _sdf_extrusion(p, (n as CSGPolygon3D).polygon, (n as CSGPolygon3D).depth)
 	else:
 		var box: AABB = local_aabb(n)
 		d = _sdf_box(p - box.get_center(), box.size * 0.5)
 	return absf(d) * scale
+
+## Signed distance to a polygon (local XY) extruded from z = 0 to z = -depth, the
+## shape of a CSGPolygon3D in depth mode (stairs and ramps, for instance).
+static func _sdf_extrusion(p: Vector3, polygon: PackedVector2Array, depth: float) -> float:
+	var q: Vector2 = Vector2(p.x, p.y)
+	var edge: float = INF
+	for i: int in polygon.size():
+		var closest: Vector2 = Geometry2D.get_closest_point_to_segment(q, polygon[i], polygon[(i + 1) % polygon.size()])
+		edge = minf(edge, closest.distance_to(q))
+	var in_profile: float = -edge if Geometry2D.is_point_in_polygon(q, polygon) else edge
+	var in_depth: float = maxf(p.z, -depth - p.z)
+	return Vector2(maxf(in_profile, 0.0), maxf(in_depth, 0.0)).length() + minf(maxf(in_profile, in_depth), 0.0)
 
 static func _sdf_box(p: Vector3, half: Vector3) -> float:
 	var q: Vector3 = p.abs() - half

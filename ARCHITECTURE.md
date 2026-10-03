@@ -145,7 +145,7 @@ Tools need exact hits on CSG, which has no physics bodies in the editor. `CsgBlo
 
 **Level check** (`CsgBlockoutValidator`) reads the triangles of every CSG root:
 - **Slopes**: faces between the walkable angle (`max_slope_angle`) and 80° (steeper counts as a wall).
-- **Ceilings**: walkable faces are sampled on a world-aligned 0.5 m grid; from each sample a ray goes up. A ceiling below standing height is orange, below crouch height red. Samples covered by solid geometry (floor under a ramp, say) are skipped: there the first face above the sample faces up, judged from its winding via `face_index`, since `TriangleMesh` doesn't orient its normals.
+- **Ceilings**: walkable faces are sampled on a world-aligned 0.5 m grid; from each sample a ray goes up. A ceiling below standing height is orange, below crouch height red. Samples covered by solid geometry (floor under a ramp, say) are skipped: there the first face above the sample faces up, judged from its winding via `face_index`, since `TriangleMesh` doesn't orient its normals. So are samples on ledges narrower than the capsule radius, like window sills: half a capsule radius away along X and along Z, a downward ray has to find floor at about the same height on at least one side of each axis.
 - Issues are grouped per ceiling primitive and kind, highlighted in the viewport and listed in the Checks tab.
 
 ---
