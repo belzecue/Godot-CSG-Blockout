@@ -57,4 +57,25 @@ static func launch(spawn: Transform3D, test_mode: bool = false) -> Error:
 	f.store_string(JSON.stringify(request))
 	f.close()
 	EditorInterface.play_custom_scene(launcher_path())
+	# The launcher gives these collision for the run; say so, since the scene differs.
+	var missing: int = count_without_collision(root)
+	if missing > 0:
+		CsgBlockoutStatus.report(CsgBlockoutI18n.tf("PLAY_HERE_COLLISION_ADDED", [missing]))
 	return OK
+
+## Visible CSG trees and frozen blockout under `root` that have no collision. The
+## launcher counts the same way (csg_play_here_launcher.gd, _ensure_collision).
+static func count_without_collision(root: Node) -> int:
+	var count: int = 0
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is CSGShape3D and (n as CSGShape3D).is_root_shape():
+			if (n as CSGShape3D).is_visible_in_tree() and not (n as CSGShape3D).use_collision:
+				count += 1
+			continue
+		if CsgBlockoutFreeze.is_frozen(n) and (n as Node3D).is_visible_in_tree() \
+				and not n.get_children().any(func(c: Node) -> bool: return c is CollisionObject3D):
+			count += 1
+		stack.append_array(n.get_children())
+	return count

@@ -154,7 +154,7 @@ graph TD
 
 1. 编辑器找出出生点（视口中心或光标处的射线命中点）和相机朝向，把场景路径、出生点、角色参数和本地化的 HUD 文字写进 `user://csg_blockout/play_here.json`。
 2. 用 `EditorInterface.play_custom_scene()` 启动插件自带的启动场景（遵循"运行前保存"设置）。
-3. 启动场景（`scripts/runtime/`）把请求的场景加载为当前场景，场景里没有太阳和天空时补一个，再生成 `CSGBlockoutTestPawn`。
+3. 启动场景（`scripts/runtime/`）把请求的场景加载为当前场景；没开 `use_collision` 的可见 CSG 根节点临时打开，没有碰撞体的冻结白盒临时补一个三角网格碰撞（只影响这一次运行，编辑器在状态行报告补了几块）；场景里没有太阳和天空时补一个；再生成 `CSGBlockoutTestPawn`。
 4. 测试小人是一个直接读物理按键的 `CharacterBody3D`，所以项目的输入映射和自动加载都不受影响。它的数值全部来自角色参数：跳跃初速 `v = √(2·g·h)` 由 `single_jump_height` 推出；冲刺速度 = `sprint_jump_distance` ÷ 滞空时间（`2v / g`）；行走速度不超过冲刺速度；走不上比 `max_slope_angle` 更陡的坡；蹲下后起身前会检查头顶空间。
 
 ---

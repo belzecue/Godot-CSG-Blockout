@@ -1,14 +1,19 @@
 extends Node
 ## Entry scene for "Play From Here". The editor writes a request (scene, spawn point,
 ## facing, player metrics) to user://csg_blockout/play_here.json and runs this scene.
-## The launcher loads the requested scene as the current scene, adds a default sun
-## and sky when the scene has no lighting, and spawns the test pawn.
+## The launcher loads the requested scene as the current scene, gives blockout without
+## collision a collision for this run, adds a default sun and sky when the scene has no
+## lighting, and spawns the test pawn.
 ## Runtime script: must not reference editor classes.
 
 const REQUEST_PATH: String = "user://csg_blockout/play_here.json"
 const REPORT_PATH: String = "user://csg_blockout/play_here_report.json"
 const SCREENSHOT_PATH: String = "user://csg_blockout/play_here.png"
 const PawnScript = preload("res://addons/csg_blockout/scripts/runtime/csg_test_pawn.gd")
+## Metadata that marks a frozen blockout node (CsgBlockoutFreeze.META_SOURCE).
+const META_FROZEN_SOURCE: StringName = &"_csg_blockout_source"
+
+var _collision_added: int = 0
 
 func _ready() -> void:
 	var request: Dictionary = _read_request()
@@ -27,6 +32,11 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	get_tree().current_scene = scene
+	_collision_added = _ensure_collision(scene)
+	if _collision_added > 0:
+		# CSG builds its collision on its next update; let it happen before the pawn falls.
+		await get_tree().process_frame
+		await get_tree().physics_frame
 	_ensure_lighting(scene)
 	var pos: Array = request.get("position", [0.0, 0.0, 0.0])
 	var spawn: Transform3D = Transform3D(Basis(Vector3.UP, float(request.get("yaw", 0.0))), Vector3(float(pos[0]), float(pos[1]), float(pos[2])))
@@ -48,6 +58,27 @@ func _read_request() -> Dictionary:
 		return {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(REQUEST_PATH))
 	return parsed if parsed is Dictionary else {}
+
+## Turns on collision for visible CSG trees without it and gives frozen blockout
+## without a collision body a trimesh one, so the pawn can stand on everything it
+## sees. Only this run changes; the scene file doesn't. Returns how many were fixed.
+## Counts like CsgBlockoutPlayHere.count_without_collision() in the editor.
+func _ensure_collision(scene: Node) -> int:
+	var count: int = 0
+	var stack: Array[Node] = [scene]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is CSGShape3D and (n as CSGShape3D).is_root_shape():
+			if (n as CSGShape3D).is_visible_in_tree() and not (n as CSGShape3D).use_collision:
+				(n as CSGShape3D).use_collision = true
+				count += 1
+			continue
+		if n is MeshInstance3D and n.has_meta(META_FROZEN_SOURCE) and (n as Node3D).is_visible_in_tree() \
+				and not n.get_children().any(func(c: Node) -> bool: return c is CollisionObject3D):
+			(n as MeshInstance3D).create_trimesh_collision()
+			count += 1
+		stack.append_array(n.get_children())
+	return count
 
 ## Adds a sun and a procedural sky when the scene has no light or environment of
 ## its own (blockout scenes usually rely on the editor's preview lighting).
@@ -94,6 +125,7 @@ func _report_later(pawn: CharacterBody3D) -> void:
 		"sprint_speed": float(pawn.get(&"_sprint_speed")),
 		"jump_velocity": float(pawn.get(&"_jump_velocity")),
 		"has_sun": not tree.current_scene.find_children("CSGBlockoutPreviewSun", "DirectionalLight3D", true, false).is_empty(),
+		"collision_added": _collision_added,
 	}
 	var f: FileAccess = FileAccess.open(REPORT_PATH, FileAccess.WRITE)
 	f.store_string(JSON.stringify(report))

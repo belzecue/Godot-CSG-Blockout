@@ -99,7 +99,7 @@ Every tool does one thing and hands control back, and the card at the top of the
 - **Level check**: flags walkable slopes that are too steep and ceilings below standing or crouch height, highlighted in the viewport and listed in the outliner's Checks tab.
 - **Jump check and ruler**: select two objects to see whether the gap is jumpable, or drag a ruler between any two points.
 - **Semantic tags**: mark shapes as wall, floor, hazard or interactive. They get color-coded grid materials and metadata your game can read, and you can export an SVG legend for design docs.
-- **Play From Here**: run the scene with a first-person test character (WASD, jump, sprint, crouch) at the viewport center or the cursor. No input map changes, no autoloads.
+- **Play From Here**: run the scene with a first-person test character (WASD, jump, sprint, crouch) at the viewport center or the cursor. Blockout without collision gets it for the run, so you never fall through. No input map changes, no autoloads.
 
 ### Organize
 - **Blockout outliner** (dock tab): only CSG trees and frozen blockout, with operation icons, show/hide, solo, lock, filter, group/ungroup, and semantic names like `Wall_Corridor_01`.

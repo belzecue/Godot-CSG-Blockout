@@ -154,7 +154,7 @@ Tools need exact hits on CSG, which has no physics bodies in the editor. `CsgBlo
 
 1. The editor finds the spawn point (raycast at the viewport center or the cursor) and the camera's yaw, and writes `user://csg_blockout/play_here.json` with the scene path, spawn, player metrics and the localized HUD text.
 2. It starts the plugin's launcher scene with `EditorInterface.play_custom_scene()` (respecting "Save Before Running").
-3. The launcher (`scripts/runtime/`) loads the requested scene as the current scene, adds a sun and a procedural sky if the scene has none, and spawns `CSGBlockoutTestPawn`.
+3. The launcher (`scripts/runtime/`) loads the requested scene as the current scene, turns on `use_collision` for visible CSG roots without it and gives frozen blockout without a collision body a trimesh one (for this run only; the editor reports how many on the status line), adds a sun and a procedural sky if the scene has none, and spawns `CSGBlockoutTestPawn`.
 4. The pawn is a `CharacterBody3D` that reads physical keys directly, so the project's input map and autoloads are untouched. Its numbers come from the player metrics: jump velocity `v = √(2·g·h)` from `single_jump_height`; sprint speed = `sprint_jump_distance` ÷ airtime (`2v / g`); walk speed is capped at the sprint speed; it can't walk up slopes steeper than `max_slope_angle` and checks for headroom before standing up.
 
 ---

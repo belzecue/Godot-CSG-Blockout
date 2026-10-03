@@ -443,6 +443,8 @@ static func group_nodes(nodes: Array[Node3D]) -> CSGCombiner3D:
 	var parent: Node = first.get_parent()
 	var combiner: CSGCombiner3D = CSGCombiner3D.new()
 	combiner.name = CsgBlockoutSceneOps.unique_child_name(parent, "Group")
+	# The grouped trees stop being roots, so the group takes over their collision.
+	combiner.use_collision = nodes.any(func(n: Node3D) -> bool: return n is CSGShape3D and (n as CSGShape3D).use_collision)
 	var center: Vector3 = Vector3.ZERO
 	for n: Node3D in nodes:
 		center += n.global_position
@@ -471,6 +473,9 @@ static func ungroup(combiner: CSGCombiner3D) -> void:
 			children.append(c)
 	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(CsgBlockoutI18n.t("OUTLINER_UNGROUP"))
 	for i: int in children.size():
+		# The children become roots of their own: they keep the group's collision.
+		if combiner.use_collision and not (parent is CSGShape3D) and children[i] is CSGShape3D and not (children[i] as CSGShape3D).use_collision:
+			action.set_property(children[i], &"use_collision", true)
 		action.reparent(children[i], parent, index + i)
 	action.remove_node(combiner)
 	action.select(children)

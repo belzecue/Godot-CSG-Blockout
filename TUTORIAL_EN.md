@@ -92,7 +92,7 @@ The **Blockout** dock tab lists only CSG trees and frozen blockout, with show/hi
 ### Play it
 **Play** in the toolbar runs the current scene with a first-person test character at the point in the middle of the viewport, facing the way the camera faces. **Play** in the pie menu uses the point under the menu instead, and you can bind a shortcut for "at the cursor" in Editor Settings.
 
-Controls: `WASD` move, `Space` jump, `Shift` sprint, `Ctrl` crouch, `R` back to the start, `Esc` frees the mouse, `F8` stops the game. The character jumps exactly `single_jump_height` and a sprint jump covers `sprint_jump_distance`: the same numbers the ruler and the level check use. Scenes without lights get a default sun and sky. Nothing is added to your input map or autoloads.
+Controls: `WASD` move, `Space` jump, `Shift` sprint, `Ctrl` crouch, `R` back to the start, `Esc` frees the mouse, `F8` stops the game. The character jumps exactly `single_jump_height` and a sprint jump covers `sprint_jump_distance`: the same numbers the ruler and the level check use. Scenes without lights get a default sun and sky. Blockout made with the tools has collision; CSG trees or frozen blockout without it get collision for that run only (the status line says how many), so the character never falls through what you see. Nothing is added to your input map or autoloads.
 
 ---
 

@@ -288,6 +288,7 @@ func _commit() -> void:
 		shape.material = material
 		shape.name = CsgBlockoutSceneOps.unique_child_name(parent, _box_name(size, op))
 		created = shape
+	CsgBlockoutNodeFactory.init_collision(created, parent)
 	action.add_node(parent, created, target["index"], xf)
 	action.select([created])
 	action.commit()

@@ -156,4 +156,13 @@ const STRINGS: Dictionary = {
 		"pt": "WASD mover · Espaço pular · Shift correr · Ctrl agachar · R voltar ao início · Esc mouse · F8 parar",
 		"ru": "WASD ходьба · Пробел прыжок · Shift бег · Ctrl присесть · R к старту · Esc мышь · F8 стоп",
 	},
+	"PLAY_HERE_COLLISION_ADDED": {
+		"zh": "%d 块白盒没有碰撞，本次试玩已临时补上，场景没改",
+		"en": "%d blockout pieces had no collision: added for this run, scene unchanged",
+		"ja": "コリジョンのないブロックアウト %d 個に今回だけ追加（シーンは変更なし）",
+		"ko": "충돌이 없는 블록아웃 %d개에 이번만 추가 (씬은 그대로)",
+		"es": "%d piezas sin colisión: añadida solo para esta partida, la escena no cambia",
+		"pt": "%d peças sem colisão: adicionada só nesta execução, a cena não muda",
+		"ru": "Без коллизии: %d — добавлена только на этот запуск, сцена не изменена",
+	},
 }

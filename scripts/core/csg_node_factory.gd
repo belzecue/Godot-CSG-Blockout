@@ -89,9 +89,17 @@ static func create(type_name: String, hit: CsgBlockoutRaycast.Hit = null, op: CS
 	if on_surface:
 		xform = surface_transform(node, hit, operation)
 
+	init_collision(node, parent)
 	node.name = CsgBlockoutSceneOps.unique_child_name(parent, BASE_NAMES.get(type_name, type_name))
 	action.add_node(parent, node, index, xform).select([node]).commit()
 	return node
+
+## A shape that starts a new CSG tree under `parent` gets collision, so the test
+## character can walk it and freezing it makes a collision body. Shapes inside a
+## tree don't need it: only the root's setting counts.
+static func init_collision(node: Node, parent: Node) -> void:
+	if node is CSGShape3D and not (parent is CSGShape3D):
+		(node as CSGShape3D).use_collision = true
 
 ## Parent/index/anchor for a new node based on the current selection.
 static func resolve_parent(node: Node3D) -> Dictionary:
