@@ -249,7 +249,7 @@ static func apply_size(node: Node3D, axis: int, text: String) -> bool:
 static func check_jump_between_selection() -> void:
 	var nodes: Array[Node3D] = CsgBlockoutSelection.top_level_nodes()
 	if nodes.size() != 2:
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.t("WARN_SELECT_TWO"), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_SELECT_TWO"), EditorToaster.SEVERITY_WARNING)
 		return
 	var a: AABB = CsgBlockoutSelection.world_aabb(nodes[0])
 	var b: AABB = CsgBlockoutSelection.world_aabb(nodes[1])
@@ -274,5 +274,5 @@ static func check_jump_between_selection() -> void:
 	var gap: float = Vector2(to.x - from.x, to.z - from.z).length()
 	var rise: float = to.y - from.y
 	var key: String = "JUMP_RESULT_OK" if ruler.is_jump_reachable else "JUMP_RESULT_FAIL"
-	CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf(key, [CsgBlockoutDrawTool._fmt(gap), CsgBlockoutDrawTool._fmt(rise)]),
+	CsgBlockoutStatus.report(CsgBlockoutI18n.tf(key, [CsgBlockoutDrawTool._fmt(gap), CsgBlockoutDrawTool._fmt(rise)]),
 		EditorToaster.SEVERITY_INFO if ruler.is_jump_reachable else EditorToaster.SEVERITY_WARNING)

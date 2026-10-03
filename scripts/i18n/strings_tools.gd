@@ -309,4 +309,28 @@ const STRINGS: Dictionary = {
 		"zh": "键位可在 编辑器设置 → 快捷键 → csg_blockout 中修改", "en": "Rebind keys in Editor Settings → Shortcuts → csg_blockout", "ja": "キーは エディター設定 → ショートカット → csg_blockout で変更できます", "ko": "키는 에디터 설정 → 단축키 → csg_blockout에서 바꿀 수 있습니다",
 		"es": "Cambia las teclas en Configuración del editor → Atajos → csg_blockout", "pt": "Altere as teclas em Configurações do editor → Atalhos → csg_blockout", "ru": "Клавиши меняются в Настройки редактора → Горячие клавиши → csg_blockout",
 	},
+	"ACTION_NEXT": {
+		"zh": "下一个 ›", "en": "Next ›", "ja": "次へ ›", "ko": "다음 ›",
+		"es": "Siguiente ›", "pt": "Próximo ›", "ru": "Далее ›",
+	},
+	"ACTION_OPEN_FOLDER": {
+		"zh": "打开文件夹 ›", "en": "Open folder ›", "ja": "フォルダーを開く ›", "ko": "폴더 열기 ›",
+		"es": "Abrir carpeta ›", "pt": "Abrir pasta ›", "ru": "Открыть папку ›",
+	},
+	"ACTION_SHOW_IN_FILESYSTEM": {
+		"zh": "在文件系统中显示 ›", "en": "Show in FileSystem ›", "ja": "ファイルシステムで表示 ›", "ko": "파일시스템에서 보기 ›",
+		"es": "Mostrar en Sistema de archivos ›", "pt": "Mostrar no Sistema de arquivos ›", "ru": "Показать в файловой системе ›",
+	},
+	"STATUS_CHECK_ISSUE": {
+		"zh": "问题 %d/%d：%s — %s", "en": "Issue %d/%d: %s — %s", "ja": "問題 %d/%d：%s — %s", "ko": "문제 %d/%d: %s — %s",
+		"es": "Problema %d/%d: %s — %s", "pt": "Problema %d/%d: %s — %s", "ru": "Проблема %d/%d: %s — %s",
+	},
+	"STATUS_FROZEN": {
+		"zh": "已冻结 %d 棵 CSG 树", "en": "Froze %d CSG tree(s)", "ja": "CSG ツリーを %d 個フリーズしました", "ko": "CSG 트리 %d개를 고정했습니다",
+		"es": "%d árbol(es) CSG congelado(s)", "pt": "%d árvore(s) CSG congelada(s)", "ru": "Заморожено CSG-деревьев: %d",
+	},
+	"STATUS_UNFROZEN": {
+		"zh": "已解冻 %d 个，恢复为可编辑的 CSG", "en": "Unfroze %d: editable CSG again", "ja": "%d 個のフリーズを解除し、編集可能な CSG に戻しました", "ko": "%d개 고정 해제: 다시 편집 가능한 CSG",
+		"es": "%d descongelado(s): CSG editable de nuevo", "pt": "%d descongelado(s): CSG editável de novo", "ru": "Разморожено: %d, снова редактируемый CSG",
+	},
 }

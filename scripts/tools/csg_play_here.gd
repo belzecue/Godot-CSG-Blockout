@@ -34,7 +34,7 @@ static func spawn_for(camera: Camera3D, screen_pos: Vector2) -> Transform3D:
 static func launch(spawn: Transform3D, test_mode: bool = false) -> Error:
 	var root: Node = EditorInterface.get_edited_scene_root()
 	if root == null or root.scene_file_path.is_empty():
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.t("WARN_PLAY_HERE_SAVE"), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_PLAY_HERE_SAVE"), EditorToaster.SEVERITY_WARNING)
 		return ERR_UNCONFIGURED
 	var settings: EditorSettings = EditorInterface.get_editor_settings()
 	if settings.has_setting("run/auto_save/save_before_running") and bool(settings.get_setting("run/auto_save/save_before_running")):

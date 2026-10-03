@@ -75,7 +75,7 @@ static func selected_frozen() -> Array[MeshInstance3D]:
 static func export_selection() -> void:
 	var nodes: Array[MeshInstance3D] = selected_frozen()
 	if nodes.is_empty():
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.t("WARN_GLTF_FREEZE_FIRST"), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_GLTF_FREEZE_FIRST"), EditorToaster.SEVERITY_WARNING)
 		return
 	export_nodes(nodes)
 
@@ -87,7 +87,7 @@ static func export_nodes(nodes: Array[MeshInstance3D], confirmed: bool = false) 
 	if nodes.is_empty():
 		return written
 	if default_path(nodes[0]).is_empty():
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.t("WARN_GLTF_SAVE_SCENE"), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_GLTF_SAVE_SCENE"), EditorToaster.SEVERITY_WARNING)
 		return written
 	if not confirmed:
 		var edited: PackedStringArray = []
@@ -104,7 +104,7 @@ static func export_nodes(nodes: Array[MeshInstance3D], confirmed: bool = false) 
 		var materials: Dictionary = {}
 		var err: Error = _write_glb(n, path, materials)
 		if err != OK:
-			CsgBlockoutFreeze._toast("%s: %s" % [path, error_string(err)], EditorToaster.SEVERITY_ERROR)
+			CsgBlockoutStatus.report("%s: %s" % [path, error_string(err)], EditorToaster.SEVERITY_ERROR)
 			continue
 		# A record of the export, not a scene edit: no undo step, but the scene must be
 		# saved to keep it.
@@ -113,7 +113,9 @@ static func export_nodes(nodes: Array[MeshInstance3D], confirmed: bool = false) 
 	if not written.is_empty():
 		EditorInterface.mark_scene_as_unsaved()
 		EditorInterface.get_resource_filesystem().scan()
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("GLTF_EXPORTED", [written.size(), written[0].get_base_dir()]), EditorToaster.SEVERITY_INFO)
+		var folder: String = ProjectSettings.globalize_path(written[0].get_base_dir())
+		CsgBlockoutStatus.report(CsgBlockoutI18n.tf("GLTF_EXPORTED", [written.size(), written[0].get_base_dir()]), EditorToaster.SEVERITY_INFO, false,
+			CsgBlockoutI18n.t("ACTION_OPEN_FOLDER"), func() -> void: OS.shell_open(folder))
 	return written
 
 ## Exports `frozen`'s mesh as a single glTF node named after it. Fills `materials`
@@ -181,7 +183,7 @@ static func _export_material(mat: Material, mat_name: String) -> Material:
 static func apply_selection() -> void:
 	var nodes: Array[MeshInstance3D] = selected_frozen()
 	if nodes.is_empty():
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.t("WARN_GLTF_FREEZE_FIRST"), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_GLTF_FREEZE_FIRST"), EditorToaster.SEVERITY_WARNING)
 		return
 	apply_refined(nodes)
 
@@ -191,13 +193,13 @@ static func apply_refined(nodes: Array[MeshInstance3D]) -> void:
 	for frozen: MeshInstance3D in nodes:
 		var path: String = path_for(frozen)
 		if path.is_empty() or not ResourceLoader.exists(path):
-			CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("WARN_GLTF_NOT_IMPORTED", [path if not path.is_empty() else String(frozen.name)]), EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_GLTF_NOT_IMPORTED", [path if not path.is_empty() else String(frozen.name)]), EditorToaster.SEVERITY_WARNING)
 			continue
 		var materials: Dictionary = (frozen.get_meta(META_GLTF, {}) as Dictionary).get("materials", {})
 		var lod: bool = bool(CsgBlockoutBakePipeline.normalized(frozen.get_meta(CsgBlockoutFreeze.META_BAKE, {}))["lod"])
 		var mesh: ArrayMesh = load_refined_mesh(path, materials, lod)
 		if mesh == null:
-			CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("WARN_GLTF_NO_MESH", [path]), EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_GLTF_NO_MESH", [path]), EditorToaster.SEVERITY_WARNING)
 			continue
 		action.set_property(frozen, &"mesh", mesh)
 		action.assign_meta(frozen, META_REFINED, {"path": path, "time": FileAccess.get_modified_time(path)})

@@ -114,7 +114,7 @@ static func export_legend_with_dialog() -> void:
 	dialog.current_file = "blockout_legend.svg"
 	dialog.file_selected.connect(func(path: String) -> void:
 		var err: Error = export_legend(path)
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("LEGEND_SAVED", [path]) if err == OK else error_string(err),
+		CsgBlockoutStatus.report(CsgBlockoutI18n.tf("LEGEND_SAVED", [path]) if err == OK else error_string(err),
 			EditorToaster.SEVERITY_INFO if err == OK else EditorToaster.SEVERITY_ERROR)
 		dialog.queue_free())
 	dialog.canceled.connect(dialog.queue_free)

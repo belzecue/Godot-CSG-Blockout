@@ -185,6 +185,58 @@ static func _cell(p: Vector3, n: Vector3) -> PackedVector3Array:
 	var c3: Vector3 = p - t * h + u * h
 	return PackedVector3Array([c0, c1, c2, c0, c2, c3])
 
+# --- stepping through issues ---------------------------------------------------------
+
+## Index of the issue last shown on the status line.
+static var cursor: int = -1
+
+## After a check: "no issues", or the first issue with "Next ›".
+static func report_results() -> void:
+	cursor = -1
+	if issues.is_empty():
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("CHECKS_NONE"))
+	else:
+		show_issue(0)
+
+## Selects the shape of issue `index` (wrapping around), frames it and says what's
+## wrong on the status line, with "Next ›" while there are others.
+static func show_issue(index: int) -> void:
+	if issues.is_empty():
+		return
+	cursor = posmod(index, issues.size())
+	var issue: Dictionary = issues[cursor]
+	var node: Node = issue["node"]
+	var shape_name: String = "?"
+	if is_instance_valid(node) and node.is_inside_tree():
+		shape_name = String(node.name)
+		var sel: EditorSelection = EditorInterface.get_selection()
+		sel.clear()
+		sel.add_node(node)
+		_frame_selection()
+	var text: String = CsgBlockoutI18n.tf("STATUS_CHECK_ISSUE", [cursor + 1, issues.size(), shape_name, describe(issue)])
+	var next_label: String = CsgBlockoutI18n.t("ACTION_NEXT") if issues.size() > 1 else ""
+	CsgBlockoutStatus.report(text, EditorToaster.SEVERITY_WARNING, false, next_label, func() -> void: show_issue(cursor + 1))
+
+## Frames the selection with the editor's own "Focus Selection" shortcut (whatever key
+## the user bound), sent to the 3D viewport after giving it keyboard focus.
+static func _frame_selection() -> void:
+	var settings: EditorSettings = EditorInterface.get_editor_settings()
+	if not settings.has_shortcut("spatial_editor/focus_selection"):
+		return
+	var shortcut: Shortcut = settings.get_shortcut("spatial_editor/focus_selection")
+	var manager: CsgBlockoutToolManager = CsgBlockoutToolManager.current
+	if shortcut == null or CsgBlockoutToolManager.focus_viewport(manager.camera if manager != null else null) == null:
+		return
+	for ev: InputEvent in shortcut.events:
+		if ev is InputEventKey:
+			var press: InputEventKey = (ev as InputEventKey).duplicate()
+			press.pressed = true
+			Input.parse_input_event(press)
+			var release: InputEventKey = press.duplicate()
+			release.pressed = false
+			Input.parse_input_event(release)
+			return
+
 # --- highlight ---------------------------------------------------------------------
 
 static func show_results() -> void:

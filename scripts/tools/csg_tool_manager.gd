@@ -335,8 +335,11 @@ func _draw_status(overlay: Control, y: float, spots: Array[Dictionary]) -> Rect2
 	var pad_x: float = 12.0 * s
 	var pad_y: float = 6.0 * s
 	var icon_w: float = font.get_string_size(icon, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-	var text_w: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var action_w: float = 0.0 if action_text.is_empty() else font.get_string_size(action_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x + 14.0 * s
+	# Long messages (paths, node lists) are cut to fit the viewport.
+	var max_text_w: float = overlay.size.x - 48.0 * s - pad_x * 2.0 - icon_w - 8.0 * s - action_w
+	text = _fit(font, text, size, max_text_w)
+	var text_w: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var height: float = font.get_height(size) + pad_y * 2.0
 	var width: float = pad_x + icon_w + 8.0 * s + text_w + action_w + pad_x
 	var rect: Rect2 = Rect2(roundf((overlay.size.x - width) * 0.5), y, width, height)
@@ -351,6 +354,33 @@ func _draw_status(overlay: Control, y: float, spots: Array[Dictionary]) -> Rect2
 		overlay.draw_string(font, Vector2(x, baseline), action_text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, ACTION_COLOR)
 		spots.append({"rect": Rect2(x - 6.0 * s, y, action_w + 6.0 * s, height), "call": CsgBlockoutStatus.trigger})
 	return rect
+
+## Gives keyboard focus to the 3D viewport of `camera` (or the first one) and returns
+## it: Godot's viewport surface, the focusable sibling of the SubViewportContainer.
+static func focus_viewport(camera: Camera3D = null) -> Control:
+	var vp: Viewport = camera.get_viewport() if is_instance_valid(camera) else EditorInterface.get_editor_viewport_3d(0)
+	var container: Control = vp.get_parent() as Control if vp != null else null
+	if container == null or container.get_parent() == null:
+		return null
+	for child: Node in container.get_parent().get_children():
+		if child is Control and child != container and (child as Control).focus_mode == Control.FOCUS_ALL:
+			(child as Control).grab_focus()
+			return child as Control
+	return null
+
+## `text`, shortened with "…" until it fits in `max_width`.
+static func _fit(font: Font, text: String, size: int, max_width: float) -> String:
+	if max_width <= 0.0 or font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= max_width:
+		return text
+	var lo: int = 0
+	var hi: int = text.length()
+	while lo < hi:
+		var mid: int = (lo + hi + 1) / 2
+		if font.get_string_size(text.left(mid) + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x <= max_width:
+			lo = mid
+		else:
+			hi = mid - 1
+	return text.left(lo) + "…"
 
 func _tag_width(font: Font, bold: Font, tag: Dictionary, size: int, s: float) -> float:
 	var w: float = font.get_string_size(String(tag.get("label", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x

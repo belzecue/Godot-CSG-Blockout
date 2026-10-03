@@ -328,6 +328,7 @@ func _on_action_requested(action_id: StringName, from_pie: bool = false) -> void
 			CsgBlockoutValidator.run()
 			if outliner != null:
 				outliner.show_checks()
+			CsgBlockoutValidator.report_results()
 		&"freeze_toggle":
 			# Unfreeze when frozen nodes are selected, otherwise freeze the CSG.
 			if not (CsgBlockoutFreeze.selection_targets()["frozen"] as Array).is_empty():
@@ -376,20 +377,8 @@ func _toggle_tool(action_id: StringName, tool: CsgBlockoutTool, mode: int) -> vo
 		tools.deactivate()
 		return
 	_start_tool(tool, mode)
-	_focus_viewport()
-
-## Keyboard focus back to the 3D viewport after a button click, so Esc and the tool
-## keys reach the tool right away.
-func _focus_viewport() -> void:
-	var vp: Viewport = tools.camera.get_viewport() if is_instance_valid(tools.camera) else EditorInterface.get_editor_viewport_3d(0)
-	var container: Control = vp.get_parent() as Control if vp != null else null
-	if container == null or container.get_parent() == null:
-		return
-	# Godot's viewport surface: the focusable sibling of the SubViewportContainer.
-	for child: Node in container.get_parent().get_children():
-		if child is Control and child != container and (child as Control).focus_mode == Control.FOCUS_ALL:
-			(child as Control).grab_focus()
-			return
+	# Keyboard focus back to the viewport, so Esc and the tool keys work right away.
+	CsgBlockoutToolManager.focus_viewport(tools.camera)
 
 func _start_tool(tool: CsgBlockoutTool, mode: int, locked: bool = false) -> void:
 	if tools.active == tool:

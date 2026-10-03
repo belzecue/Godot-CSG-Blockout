@@ -42,7 +42,7 @@ static func last_path() -> String:
 static func export_selection_with_dialog() -> void:
 	var nodes: Array[Node3D] = selection_nodes()
 	if nodes.is_empty():
-		CsgBlockoutFreeze._toast(CsgBlockoutI18n.t("WARN_MESHLIB_NOTHING"), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_MESHLIB_NOTHING"), EditorToaster.SEVERITY_WARNING)
 		return
 	var dialog: EditorFileDialog = EditorFileDialog.new()
 	dialog.name = "CsgBlockoutMeshLibraryDialog"
@@ -75,7 +75,7 @@ static func export_items(nodes: Array[Node3D], path: String) -> Dictionary:
 		# Reuse the cached instance so open GridMaps using it update right away.
 		lib = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE) as MeshLibrary
 		if lib == null:
-			CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("WARN_MESHLIB_NOT_LIBRARY", [path]), EditorToaster.SEVERITY_ERROR)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_MESHLIB_NOT_LIBRARY", [path]), EditorToaster.SEVERITY_ERROR)
 			return {"added": 0, "updated": 0, "skipped": skipped, "library": null, "error": ERR_INVALID_DATA}
 	else:
 		lib = MeshLibrary.new()
@@ -89,12 +89,12 @@ static func export_items(nodes: Array[Node3D], path: String) -> Dictionary:
 		var item_name: String = String(node.name)
 		if ids.any(func(id: int) -> bool: return lib.get_item_name(id) == item_name):
 			skipped.append(item_name)
-			CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("WARN_MESHLIB_DUPLICATE", [item_name]), EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_MESHLIB_DUPLICATE", [item_name]), EditorToaster.SEVERITY_WARNING, true)
 			continue
 		var item: Dictionary = _item_for(node)
 		if item.is_empty():
 			skipped.append(item_name)
-			CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("WARN_FREEZE_EMPTY", [item_name]), EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_FREEZE_EMPTY", [item_name]), EditorToaster.SEVERITY_WARNING)
 			continue
 		var id: int = lib.find_item_by_name(item_name)
 		if id < 0:
@@ -121,11 +121,12 @@ static func export_items(nodes: Array[Node3D], path: String) -> Dictionary:
 	var err: Error = ResourceSaver.save(lib, path)
 	report["error"] = err
 	if err != OK:
-		CsgBlockoutFreeze._toast("%s: %s" % [path, error_string(err)], EditorToaster.SEVERITY_ERROR)
+		CsgBlockoutStatus.report("%s: %s" % [path, error_string(err)], EditorToaster.SEVERITY_ERROR)
 		return report
 	EditorInterface.get_resource_filesystem().update_file(path)
 	EditorInterface.get_editor_settings().set_project_metadata(META_SECTION, META_LAST_PATH, path)
-	CsgBlockoutFreeze._toast(CsgBlockoutI18n.tf("MESHLIB_EXPORTED", [added, updated, path]), EditorToaster.SEVERITY_INFO)
+	CsgBlockoutStatus.report(CsgBlockoutI18n.tf("MESHLIB_EXPORTED", [added, updated, path]), EditorToaster.SEVERITY_INFO, false,
+		CsgBlockoutI18n.t("ACTION_SHOW_IN_FILESYSTEM"), func() -> void: EditorInterface.get_file_system_dock().navigate_to_path(path))
 	return report
 
 ## {"mesh", "shapes" (Shape3D/Transform3D pairs), "cast_shadow"} or {} without geometry.

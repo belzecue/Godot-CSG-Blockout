@@ -53,6 +53,7 @@ static func freeze(roots: Array[CSGShape3D]) -> void:
 
 ## freeze() without waiting for pending CSG updates: the roots' meshes must be current.
 static func freeze_now(roots: Array[CSGShape3D]) -> void:
+	var said: int = CsgBlockoutStatus.serial()
 	var scene_root: Node = EditorInterface.get_edited_scene_root()
 	if scene_root == null or roots.is_empty():
 		return
@@ -64,15 +65,15 @@ static func freeze_now(roots: Array[CSGShape3D]) -> void:
 		if not is_instance_valid(root) or not root.is_inside_tree():
 			continue
 		if root == scene_root:
-			_toast(CsgBlockoutI18n.t("WARN_FREEZE_SCENE_ROOT"), EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.t("WARN_FREEZE_SCENE_ROOT"), EditorToaster.SEVERITY_WARNING)
 			continue
 		var options: Dictionary = options_for(root)
 		var baked: Dictionary = CsgBlockoutBakePipeline.build(root, options)
 		if baked.is_empty():
-			_toast(CsgBlockoutI18n.tf("WARN_FREEZE_EMPTY", [root.name]), EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_FREEZE_EMPTY", [root.name]), EditorToaster.SEVERITY_WARNING)
 			continue
 		for w: String in baked["warnings"]:
-			_toast("%s: %s" % [root.name, w], EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report("%s: %s" % [root.name, w], EditorToaster.SEVERITY_WARNING, true)
 		_warn_external_references(root, scene_root, references)
 		var frozen: MeshInstance3D = _build_frozen(root, baked, options)
 		frozen.set_meta(META_SOURCE, _pack_source(root, scene_root))
@@ -92,6 +93,8 @@ static func freeze_now(roots: Array[CSGShape3D]) -> void:
 		return
 	action.select(frozen_nodes)
 	action.commit()
+	if CsgBlockoutStatus.serial() == said:
+		CsgBlockoutStatus.report(CsgBlockoutI18n.tf("STATUS_FROZEN", [frozen_nodes.size()]))
 
 ## Bake options for a CSG root: the ones it was frozen with before (kept on the
 ## shell), otherwise the project defaults.
@@ -167,7 +170,7 @@ static func rebake(frozen_nodes: Array[MeshInstance3D], options: Variant = null)
 		if baked.is_empty():
 			continue
 		for w: String in baked["warnings"]:
-			_toast("%s: %s" % [frozen.name, w], EditorToaster.SEVERITY_WARNING)
+			CsgBlockoutStatus.report("%s: %s" % [frozen.name, w], EditorToaster.SEVERITY_WARNING, true)
 		action.set_property(frozen, &"mesh", baked["mesh"])
 		action.assign_meta(frozen, META_BAKE, opts)
 		# Back to the blockout mesh: a refined mesh from the glTF round trip is dropped.
@@ -264,7 +267,7 @@ static func _warn_external_references(root: Node, scene_root: Node, references: 
 		if target != root and root.is_ancestor_of(target):
 			hits.append("%s.%s" % [scene_root.get_path_to(n), ref[1]])
 	if not hits.is_empty():
-		_toast(CsgBlockoutI18n.tf("WARN_FREEZE_REFERENCES", [root.name, ", ".join(hits)]), EditorToaster.SEVERITY_WARNING)
+		CsgBlockoutStatus.report(CsgBlockoutI18n.tf("WARN_FREEZE_REFERENCES", [root.name, ", ".join(hits)]), EditorToaster.SEVERITY_WARNING, true)
 
 # --- unfreeze -----------------------------------------------------------------------
 
@@ -306,6 +309,7 @@ static func unfreeze(frozen_nodes: Array[MeshInstance3D]) -> void:
 		return
 	action.select(restored)
 	action.commit()
+	CsgBlockoutStatus.report(CsgBlockoutI18n.tf("STATUS_UNFROZEN", [restored.size()]))
 
 ## The frozen node minus generated content (mesh, collision, extras, source), so a
 ## later freeze can restore the user's customizations.
@@ -326,10 +330,3 @@ static func _pack_shell(frozen: MeshInstance3D, scene_root: Node) -> PackedScene
 	packed.pack(copy)
 	copy.free()
 	return packed
-
-static func _toast(message: String, severity: EditorToaster.Severity) -> void:
-	var toaster: EditorToaster = EditorInterface.get_editor_toaster()
-	if toaster != null:
-		toaster.push_toast(message, severity)
-	else:
-		push_warning(message)
