@@ -42,17 +42,15 @@ static func instantiate(type_name: String) -> Node3D:
 	return null
 
 ## Creates `type_name` as one undo step and selects it. `hit` (optional) is a surface
-## under the cursor. `op` is the boolean operation (-1: the sidebar's current one).
-## Returns the created node or null.
-static func create(type_name: String, hit: CsgBlockoutRaycast.Hit = null, op: int = -1) -> Node3D:
+## under the cursor; `op` the boolean operation of a CSG shape. Returns the created
+## node or null.
+static func create(type_name: String, hit: CsgBlockoutRaycast.Hit = null, op: CSGShape3D.Operation = CSGShape3D.OPERATION_UNION) -> Node3D:
 	var node: Node3D = instantiate(type_name)
 	if node == null:
 		push_warning(CsgBlockoutI18n.t("WARN_UNSUPPORTED_CSG_TYPE"))
 		return null
 	var config: CsgBlockoutConfig = CsgBlockoutConfig.get_config()
-	var operation: CSGShape3D.Operation = op as CSGShape3D.Operation
-	if op < 0:
-		operation = config.default_operation if config else CSGShape3D.OPERATION_UNION
+	var operation: CSGShape3D.Operation = op
 	if node is CSGShape3D:
 		(node as CSGShape3D).operation = operation
 		if config:

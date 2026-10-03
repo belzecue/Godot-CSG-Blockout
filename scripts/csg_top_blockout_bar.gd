@@ -1,12 +1,12 @@
 @tool
-class_name CSGTopBlockoutBar extends Control
+class_name CSGTopBlockoutBar extends HBoxContainer
+## The plugin's part of the 3D editor toolbar: only actions that concern the whole
+## level (grid, snap, check, play, freeze) and the "⋯" menu. The drawing tools and
+## shapes live in the palette on the left (CSGSideBlockoutBar).
 
-signal request_create_node(node_type: String)
-signal add_ruler_requested()
 ## Generic action from the bar's buttons/menus, dispatched by the plugin.
 signal action_requested(action_id: StringName)
 
-const BASE_ICON_MAX_WIDTH: int = 16
 const MORE_SNAP_TO_GRID: int = 0
 const MORE_CHECK_JUMP: int = 1
 const MORE_EXPORT_LEGEND: int = 2
@@ -17,14 +17,24 @@ const MORE_EXPORT_GLTF: int = 6
 const MORE_APPLY_GLTF: int = 7
 const MORE_SHOW_DIMENSIONS: int = 8
 const MORE_SHOW_RULERS: int = 9
+const MORE_SHORTCUTS: int = 10
+
+## [language_override value, menu label] for the "⋯ > Language" submenu.
+const LANGUAGES: Array = [
+	["auto", ""], ["en", "English"], ["zh_CN", "中文"], ["ja", "日本語"], ["ko", "한국어"],
+	["es", "Español"], ["pt", "Português"], ["ru", "Русский"],
+]
 
 var _rulers_visible: bool = true
 var _grid_option: OptionButton
 var _snap_button: Button
 var _more_button: MenuButton
-var _tool_buttons: Array[Button] = []
 var _freeze_button: Button
 var _tag_menu: PopupMenu
+var _language_menu: PopupMenu
+
+func _init() -> void:
+	name = "CsgBlockoutToolbar"
 
 func _enter_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -34,52 +44,24 @@ func _enter_tree() -> void:
 	var sel: EditorSelection = EditorInterface.get_selection()
 	if sel and not sel.selection_changed.is_connected(_on_selection_changed):
 		sel.selection_changed.connect(_on_selection_changed)
-
-	# Icon-only like Godot's own 3D toolbar, so everything fits on one row.
-	var add_ruler_btn: Button = find_child("AddRuler", true, false) as Button
-	if add_ruler_btn:
-		add_ruler_btn.text = ""
-		add_ruler_btn.set_meta("i18n_tooltip_key", "ADD_RULER_TOOLTIP")
-
-	# Ruler visibility is a checkable "⋯" entry; the scene's button only keeps the state.
-	var toggle_rulers_btn: Button = find_child("ToggleRulers", true, false) as Button
-	if toggle_rulers_btn:
-		toggle_rulers_btn.visible = false
-
-	# Repeater/Spreader actions live in the "⋯" menu: toolbar buttons that appear and
-	# disappear with the selection would make the 3D toolbar re-wrap and the viewport jump.
-	for legacy: String in ["RepeaterTools", "VSeparator"]:
-		var c: Control = find_child(legacy, true, false) as Control
-		if c:
-			c.visible = false
-
-	_build_blockout_tools()
+	if get_child_count() == 0:
+		_build()
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
 	if not grid.changed.is_connected(_sync_grid_controls):
 		grid.changed.connect(_sync_grid_controls)
-
-	_apply_editor_scale()
 	CsgBlockoutI18n.translate_node(self)
 	_sync_grid_controls()
 	_on_selection_changed()
 
-## Grid size, snap toggle and the "more" menu, placed before the ruler buttons.
-func _build_blockout_tools() -> void:
-	if find_child("BlockoutTools", false, false) != null:
-		return
-	var box: HBoxContainer = HBoxContainer.new()
-	box.name = "BlockoutTools"
-	add_child(box)
-	move_child(box, 0)
-	# Flat icon buttons already have padding; no extra gaps, so Godot's own per-selection
-	# menus (e.g. "Mesh" for a frozen node) still fit on the same toolbar row.
-	for container: Control in [self, box, find_child("RulerTools", false, false) as Control]:
-		if container != null:
-			container.add_theme_constant_override(&"separation", 0)
-
+## Grid size, snap, Check, Play, Freeze and "⋯". Flat buttons already have padding, so
+## no extra gaps: Godot's own per-selection menus (e.g. "Mesh" for a frozen node)
+## still fit on the same toolbar row.
+func _build() -> void:
+	add_theme_constant_override(&"separation", 0)
 	_grid_option = OptionButton.new()
 	_grid_option.name = "GridSize"
 	_grid_option.flat = true
+	_grid_option.focus_mode = Control.FOCUS_NONE
 	_grid_option.set_meta("i18n_tooltip_key", "GRID_SIZE_TOOLTIP")
 	# Compact: the popup still lists every size; the button only shows the current one.
 	_grid_option.fit_to_longest_item = false
@@ -88,32 +70,26 @@ func _build_blockout_tools() -> void:
 		var label: String = ("%d m" % int(s)) if s >= 1.0 else ("%s m" % String.num(s, 3))
 		_grid_option.add_item(label)
 	_grid_option.item_selected.connect(_on_grid_size_selected)
-	box.add_child(_grid_option)
+	add_child(_grid_option)
 
 	_snap_button = Button.new()
 	_snap_button.name = "SnapToggle"
 	_snap_button.flat = true
 	_snap_button.toggle_mode = true
+	_snap_button.focus_mode = Control.FOCUS_NONE
 	_snap_button.set_meta("i18n_tooltip_key", "SNAP_TOOLTIP")
 	_snap_button.icon = editor_icon(&"SnapGrid")
 	_snap_button.toggled.connect(_on_snap_toggled)
-	box.add_child(_snap_button)
-
-	_add_tool_button(box, &"draw_box", editor_icon(&"CSGBox3D"), "DRAW_BOX_TOOLTIP")
-	_add_tool_button(box, &"draw_room", editor_icon(&"CSGCombiner3D"), "DRAW_ROOM_TOOLTIP")
-	_add_tool_button(box, &"opening_door", load("res://addons/csg_blockout/res/icons/door.svg") as Texture2D, "OPENING_DOOR_TOOLTIP")
-	_add_tool_button(box, &"opening_window", load("res://addons/csg_blockout/res/icons/window.svg") as Texture2D, "OPENING_WINDOW_TOOLTIP")
+	add_child(_snap_button)
 
 	# Dimension labels are toggled from the "⋯" menu (view toggles there keep the bar
 	# narrow enough to share a row with Godot's own per-selection menus).
 	CsgBlockoutMeasureOverlay.load_state()
-	_add_action_button(box, &"validate", editor_icon(&"StatusWarning"), "VALIDATE", "VALIDATE_TOOLTIP")
-	_add_action_button(box, &"add_player_ref", editor_icon(&"CharacterBody3D"), "", "PLAYER_REF_TOOLTIP")
-
-	_add_action_button(box, &"play_here", editor_icon(&"Play"), "", "PLAY_HERE_TOOLTIP")
+	_add_action_button(&"validate", editor_icon(&"StatusWarning"), "VALIDATE", "VALIDATE_TOOLTIP")
+	_add_action_button(&"play_here", _plugin_icon("play_here.svg"), "PIE_PLAY", "PLAY_HERE_TOOLTIP")
 	# One button whose icon follows the selection (freeze CSG / unfreeze frozen): its
 	# width never changes, so the toolbar doesn't re-wrap.
-	_freeze_button = _add_action_button(box, &"freeze_toggle", _freeze_icon(), "", "FREEZE_TOOLTIP")
+	_freeze_button = _add_action_button(&"freeze_toggle", _freeze_icon(), "", "FREEZE_TOOLTIP")
 
 	_more_button = MenuButton.new()
 	_more_button.name = "MoreActions"
@@ -122,42 +98,24 @@ func _build_blockout_tools() -> void:
 	_more_button.set_meta("i18n_tooltip_key", "MORE_ACTIONS_TOOLTIP")
 	_more_button.get_popup().id_pressed.connect(_on_more_id_pressed)
 	_more_button.about_to_popup.connect(_update_more_menu_state)
-	box.add_child(_more_button)
+	add_child(_more_button)
 	_rebuild_more_menu()
 
-
-## Icon toggle that asks the plugin to (de)activate viewport tool `tool_id`.
-func _add_tool_button(parent: Control, tool_id: StringName, icon: Texture2D, tooltip_key: String) -> Button:
-	var btn: Button = Button.new()
-	btn.name = "Tool_" + String(tool_id)
-	btn.flat = true
-	btn.toggle_mode = true
-	btn.icon = icon
-	if btn.icon == null:
-		btn.text = String(tool_id)
-	btn.set_meta("i18n_tooltip_key", tooltip_key)
-	btn.set_meta("tool_id", tool_id)
-	btn.toggled.connect(func(_on: bool) -> void: action_requested.emit(tool_id))
-	parent.add_child(btn)
-	_tool_buttons.append(btn)
-	return btn
-
 ## Plain (non-toggle) button that asks the plugin to run action `action_id`.
-func _add_action_button(parent: Control, action_id: StringName, icon: Texture2D, text_key: String, tooltip_key: String) -> Button:
+func _add_action_button(action_id: StringName, icon: Texture2D, text_key: String, tooltip_key: String) -> Button:
 	var btn: Button = Button.new()
 	btn.name = "Action_" + String(action_id)
 	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
 	btn.icon = icon
+	if not text_key.is_empty():
+		btn.text = CsgBlockoutI18n.t(text_key)
+		btn.set_meta("i18n_text_key", text_key)
 	btn.tooltip_text = CsgBlockoutI18n.t(tooltip_key)
 	btn.set_meta("i18n_tooltip_key", tooltip_key)
 	btn.pressed.connect(func() -> void: action_requested.emit(action_id))
-	parent.add_child(btn)
+	add_child(btn)
 	return btn
-
-## Reflects the active viewport tool on the toggle buttons.
-func set_active_tool(tool_id: StringName) -> void:
-	for btn: Button in _tool_buttons:
-		btn.set_pressed_no_signal(btn.get_meta("tool_id") == tool_id)
 
 ## Built-in editor icon by name, or null outside the editor.
 static func editor_icon(icon_name: StringName) -> Texture2D:
@@ -167,6 +125,10 @@ static func editor_icon(icon_name: StringName) -> Texture2D:
 	if theme != null and theme.has_icon(icon_name, &"EditorIcons"):
 		return theme.get_icon(icon_name, &"EditorIcons")
 	return null
+
+static func _plugin_icon(file_name: String) -> Texture2D:
+	var path: String = CsgBlockoutConfig.plugin_path.path_join("res/icons").path_join(file_name)
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 func _rebuild_more_menu() -> void:
 	if _more_button == null:
@@ -206,6 +168,17 @@ func _rebuild_more_menu() -> void:
 	popup.add_separator()
 	popup.add_item("%s (Repeater/Spreader)" % CsgBlockoutI18n.t("REFRESH"), MORE_REPEATER_REFRESH)
 	popup.add_item("%s (Repeater/Spreader)" % CsgBlockoutI18n.t("BAKE"), MORE_REPEATER_BAKE)
+	popup.add_separator()
+	popup.add_item(CsgBlockoutI18n.t("SHORTCUTS_MENU"), MORE_SHORTCUTS)
+	if _language_menu == null:
+		_language_menu = PopupMenu.new()
+		_language_menu.name = "LanguageMenu"
+		_language_menu.id_pressed.connect(_on_language_id_pressed)
+	_language_menu.clear()
+	for i: int in LANGUAGES.size():
+		var label: String = LANGUAGES[i][1] if i > 0 else CsgBlockoutI18n.t("LANGUAGE_AUTO")
+		_language_menu.add_radio_check_item(label, i)
+	popup.add_submenu_node_item(CsgBlockoutI18n.t("LANGUAGE_MENU"), _language_menu)
 
 ## Greys out entries that don't apply to the current selection.
 func _update_more_menu_state() -> void:
@@ -228,10 +201,24 @@ func _update_more_menu_state() -> void:
 		var gltf_idx: int = popup.get_item_index(id)
 		if gltf_idx >= 0:
 			popup.set_item_disabled(gltf_idx, no_frozen)
+	if _language_menu != null:
+		var config: CsgBlockoutConfig = CsgBlockoutConfig.get_config()
+		var current: String = config.language_override if config else "auto"
+		for i: int in LANGUAGES.size():
+			var code: String = LANGUAGES[i][0]
+			_language_menu.set_item_checked(i, current == code or (code == "zh_CN" and current == "zh") or (code == "auto" and current.is_empty()))
 
 func _on_tag_id_pressed(id: int) -> void:
 	var tag: StringName = CsgBlockoutTags.TAGS[id] if id < CsgBlockoutTags.TAGS.size() else &""
 	CsgBlockoutTags.apply_to_selection(tag)
+
+func _on_language_id_pressed(id: int) -> void:
+	var config: CsgBlockoutConfig = CsgBlockoutConfig.get_config()
+	if config == null or id < 0 or id >= LANGUAGES.size():
+		return
+	config.language_override = LANGUAGES[id][0]
+	config.save_config()
+	get_tree().call_group(&"csg_blockout_ui", &"update_language")
 
 func _sync_grid_controls() -> void:
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
@@ -254,11 +241,7 @@ func _on_more_id_pressed(id: int) -> void:
 			CsgBlockoutMeasureOverlay.set_enabled(not CsgBlockoutMeasureOverlay.enabled)
 			action_requested.emit(&"refresh_overlays")
 		MORE_SHOW_RULERS:
-			var toggle_btn: Button = find_child("ToggleRulers", true, false) as Button
-			if toggle_btn:
-				toggle_btn.button_pressed = not _rulers_visible
-			else:
-				_on_toggle_rulers_toggled(not _rulers_visible)
+			set_rulers_visible(not _rulers_visible)
 		MORE_SNAP_TO_GRID:
 			CsgBlockoutTransformHotkeys.snap_selection_to_grid()
 		MORE_CHECK_JUMP:
@@ -275,15 +258,8 @@ func _on_more_id_pressed(id: int) -> void:
 			_on_refresh_pressed()
 		MORE_REPEATER_BAKE:
 			_on_bake_pressed()
-
-func _apply_editor_scale() -> void:
-	var ed_scale: float = 1.0
-	if Engine.is_editor_hint():
-		ed_scale = EditorInterface.get_editor_scale()
-	ed_scale = maxf(ed_scale, 0.1)
-	var add_ruler_btn: Button = find_child("AddRuler", true, false) as Button
-	if add_ruler_btn:
-		add_ruler_btn.add_theme_constant_override("icon_max_width", int(round(BASE_ICON_MAX_WIDTH * ed_scale)))
+		MORE_SHORTCUTS:
+			CsgBlockoutCheatSheet.popup()
 
 func update_language() -> void:
 	CsgBlockoutI18n.translate_node(self)
@@ -315,29 +291,18 @@ func _on_selection_changed() -> void:
 	_freeze_button.disabled = not (can_freeze or can_unfreeze)
 
 static func _freeze_icon(unfreeze: bool = false) -> Texture2D:
-	return load("res://addons/csg_blockout/res/icons/%s.svg" % ("unfreeze" if unfreeze else "freeze")) as Texture2D
+	return _plugin_icon("unfreeze.svg" if unfreeze else "freeze.svg")
 
-func _on_add_ruler_pressed() -> void:
-	if not _rulers_visible:
-		var toggle_btn: Button = find_child("ToggleRulers", true, false) as Button
-		if toggle_btn:
-			toggle_btn.button_pressed = true
-	add_ruler_requested.emit()
-	request_create_node.emit("CSGRuler3D")
-
-func _on_toggle_rulers_toggled(toggled_on: bool) -> void:
-	_rulers_visible = toggled_on
+## Shows or hides every ruler in the edited scene.
+func set_rulers_visible(on: bool) -> void:
+	_rulers_visible = on
 	var tree: SceneTree = get_tree()
 	if tree != null:
-		tree.set_group(&"csg_rulers", &"visible", toggled_on)
+		tree.set_group(&"csg_rulers", &"visible", on)
 		tree.call_group(&"csg_rulers", &"update_gizmos")
 
 func _on_refresh_pressed() -> void:
-	var sel: EditorSelection = EditorInterface.get_selection()
-	if not sel:
-		return
-	var selection: Array[Node] = sel.get_selected_nodes()
-	for node: Node in selection:
+	for node: Node in EditorInterface.get_selection().get_selected_nodes():
 		if node is CSGRepeater3D:
 			(node as CSGRepeater3D).repeat_template()
 			break
@@ -346,11 +311,7 @@ func _on_refresh_pressed() -> void:
 			break
 
 func _on_bake_pressed() -> void:
-	var sel: EditorSelection = EditorInterface.get_selection()
-	if not sel:
-		return
-	var selection: Array[Node] = sel.get_selected_nodes()
-	for node: Node in selection:
+	for node: Node in EditorInterface.get_selection().get_selected_nodes():
 		if node is CSGRepeater3D or node is CSGSpreader3D:
 			if node.has_method(&"bake_instances"):
 				node.call(&"bake_instances")

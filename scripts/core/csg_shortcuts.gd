@@ -71,20 +71,36 @@ static func matches(id: String, event: InputEvent, allow_shift: bool = false) ->
 	var shift_ok: bool = k.shift_pressed == spec[2] or (allow_shift and not spec[2])
 	return k.keycode == spec[0] and k.ctrl_pressed == spec[1] and shift_ok and k.alt_pressed == spec[3]
 
-## Human-readable binding for tooltips/HUD, e.g. "Ctrl+Shift+D".
+## Human-readable binding for tooltips and the cheat sheet, e.g. "Ctrl+Shift+D" or
+## "[" (empty when unbound).
 static func describe(id: String) -> String:
 	var settings: EditorSettings = EditorInterface.get_editor_settings()
 	var path: String = PREFIX + id
+	var text: String = ""
 	if settings != null and settings.has_method(&"get_shortcut") and settings.has_shortcut(path):
 		var sc: Shortcut = settings.get_shortcut(path)
-		if sc != null:
-			return sc.get_as_text()
-	var spec: Array = DEFAULTS.get(id, [])
-	if spec.is_empty():
-		return ""
-	var parts: PackedStringArray = []
-	if spec[1]: parts.append("Ctrl")
-	if spec[2]: parts.append("Shift")
-	if spec[3]: parts.append("Alt")
-	parts.append(OS.get_keycode_string(spec[0]))
-	return "+".join(parts)
+		if sc != null and sc.has_valid_event():
+			text = sc.get_as_text()
+	else:
+		var spec: Array = DEFAULTS.get(id, [])
+		if not spec.is_empty() and spec[0] != KEY_NONE:
+			var parts: PackedStringArray = []
+			if spec[1]: parts.append("Ctrl")
+			if spec[2]: parts.append("Shift")
+			if spec[3]: parts.append("Alt")
+			parts.append(OS.get_keycode_string(spec[0]))
+			text = "+".join(parts)
+	return _pretty(text)
+
+## Symbols for keys whose names read poorly ("BracketLeft" -> "[").
+const KEY_SYMBOLS: Dictionary = {
+	"BracketLeft": "[", "BracketRight": "]", "Comma": ",", "Period": ".",
+	"Left": "←", "Right": "→", "Up": "↑", "Down": "↓", "PageUp": "PgUp", "PageDown": "PgDn",
+	"None": "",
+}
+
+static func _pretty(text: String) -> String:
+	var parts: PackedStringArray = text.split("+")
+	for i: int in parts.size():
+		parts[i] = KEY_SYMBOLS.get(parts[i], parts[i])
+	return "+".join(parts) if not parts[parts.size() - 1].is_empty() else ""

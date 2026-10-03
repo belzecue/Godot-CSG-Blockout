@@ -50,7 +50,7 @@ func _get_pie_menu_items() -> Array[Dictionary]:
 	return [
 		{"label": CsgBlockoutI18n.t("TOOL_BOX"), "type": "action", "action_id": &"draw_box", "icon": _icon("box.svg")},
 		{"label": CsgBlockoutI18n.t("TOOL_ROOM"), "type": "action", "action_id": &"draw_room", "icon": _icon("room.svg")},
-		{"label": CsgBlockoutI18n.t("TOOL_CUT"), "type": "action", "action_id": &"draw_cut", "icon": _icon("subtraction.svg")},
+		{"label": CsgBlockoutI18n.t("TOOL_CUT"), "type": "action", "action_id": &"draw_cut", "icon": _icon("cut.svg")},
 		{"label": CsgBlockoutI18n.t("DOOR"), "type": "action", "action_id": &"opening_door", "icon": _icon("door.svg")},
 		{"label": CsgBlockoutI18n.t("WINDOW"), "type": "action", "action_id": &"opening_window", "icon": _icon("window.svg")},
 		{"label": CsgBlockoutI18n.t("PIE_PLAY"), "type": "action", "action_id": &"play_here_cursor", "icon": _icon("play_here.svg")},
@@ -72,9 +72,9 @@ func _get_more_menu() -> Array[Dictionary]:
 			"icon": _icon("unfreeze.svg" if frozen else "freeze.svg"), "disabled": not freezable, "reason": need_csg},
 		{"label": CsgBlockoutI18n.t("ARRAY_ACTION"), "type": "action", "action_id": &"array", "disabled": not has_selection, "reason": need_any},
 		{"label": CsgBlockoutI18n.t("PIE_SNAP"), "type": "action", "action_id": &"snap_to_grid", "disabled": not has_selection, "reason": need_any},
-		{"label": CsgBlockoutI18n.t("PIE_TO_UNION"), "type": "action", "action_id": &"set_op_union", "icon": _icon("union.svg"), "disabled": not has_csg, "reason": need_csg},
-		{"label": CsgBlockoutI18n.t("PIE_TO_SUBTRACT"), "type": "action", "action_id": &"set_op_subtract", "icon": _icon("subtraction.svg"), "disabled": not has_csg, "reason": need_csg},
-		{"label": CsgBlockoutI18n.t("PIE_TO_INTERSECT"), "type": "action", "action_id": &"set_op_intersect", "icon": _icon("intersection.svg"), "disabled": not has_csg, "reason": need_csg},
+		{"label": CsgBlockoutI18n.t("PIE_TO_UNION"), "type": "action", "action_id": &"set_op_union", "icon": _icon("op_union.svg"), "disabled": not has_csg, "reason": need_csg},
+		{"label": CsgBlockoutI18n.t("PIE_TO_SUBTRACT"), "type": "action", "action_id": &"set_op_subtract", "icon": _icon("op_subtract.svg"), "disabled": not has_csg, "reason": need_csg},
+		{"label": CsgBlockoutI18n.t("PIE_TO_INTERSECT"), "type": "action", "action_id": &"set_op_intersect", "icon": _icon("op_intersect.svg"), "disabled": not has_csg, "reason": need_csg},
 		{"label": CsgBlockoutI18n.t("CSGPlayerReference3D"), "type": "action", "action_id": &"add_player_ref"},
 	]
 
@@ -96,16 +96,13 @@ func _enter_tree() -> void:
 	player_ref_gizmo_plugin = CSGPlayerReferenceGizmoPlugin.new()
 	add_node_3d_gizmo_plugin(player_ref_gizmo_plugin)
 
-	# Sidebar
-	var sidebar_scene: PackedScene = preload("res://addons/csg_blockout/scenes/csg_side_blockout_bar.tscn")
-	sidebar = sidebar_scene.instantiate() as CSGSideBlockoutBar
+	# Tool palette left of the viewport, global actions in the 3D toolbar.
+	sidebar = CSGSideBlockoutBar.new()
 	sidebar.request_create_node.connect(_on_create_requested)
+	sidebar.action_requested.connect(_on_action_requested)
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_SIDE_LEFT, sidebar)
-
-	# Topbar
-	var topbar_scene: PackedScene = preload("res://addons/csg_blockout/scenes/csg_top_blockout_bar.tscn")
-	topbar = topbar_scene.instantiate() as CSGTopBlockoutBar
-	topbar.request_create_node.connect(_on_create_requested)
+	topbar = CSGTopBlockoutBar.new()
+	topbar.action_requested.connect(_on_action_requested)
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, topbar)
 
 	_export_plugin = CsgBlockoutExportPlugin.new()
@@ -134,8 +131,7 @@ func _enter_tree() -> void:
 	tools.register_tool(&"draw", _draw_tool)
 	tools.register_tool(&"opening", _opening_tool)
 	tools.register_tool(&"array", CsgBlockoutArrayTool.new())
-	tools.active_tool_changed.connect(topbar.set_active_tool)
-	topbar.action_requested.connect(_on_action_requested)
+	tools.active_tool_changed.connect(sidebar.set_active_tool)
 	set_input_event_forwarding_always_enabled()
 	set_force_draw_over_forwarding_enabled()
 	var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
@@ -269,8 +265,13 @@ func _pie_hit() -> CsgBlockoutRaycast.Hit:
 	tools.camera = _pie_camera
 	return tools.cast(_pie_screen_pos)
 
+## Palette shape buttons: next to the selection, or on the surface in the middle of
+## the view when nothing is selected.
 func _on_create_requested(csg_type: String) -> void:
-	CsgBlockoutNodeFactory.create(csg_type)
+	var hit: CsgBlockoutRaycast.Hit = null
+	if EditorInterface.get_selection().get_selected_nodes().is_empty():
+		hit = _viewport_center_hit()
+	CsgBlockoutNodeFactory.create(csg_type, hit)
 
 ## Modal tools behind each tool action: [tool, mode].
 func _tool_for(action_id: StringName) -> Array:
@@ -304,6 +305,9 @@ func _on_action_requested(action_id: StringName, from_pie: bool = false) -> void
 			update_overlays()
 		&"add_player_ref":
 			CsgBlockoutNodeFactory.create("CSGPlayerReference3D", _pie_hit() if from_pie else _viewport_center_hit())
+		&"add_ruler":
+			topbar.set_rulers_visible(true)
+			_on_create_requested("CSGRuler3D")
 		&"set_op_union":
 			_set_operation(CSGShape3D.OPERATION_UNION, "UNION")
 		&"set_op_subtract":
@@ -372,6 +376,20 @@ func _toggle_tool(action_id: StringName, tool: CsgBlockoutTool, mode: int) -> vo
 		tools.deactivate()
 		return
 	_start_tool(tool, mode)
+	_focus_viewport()
+
+## Keyboard focus back to the 3D viewport after a button click, so Esc and the tool
+## keys reach the tool right away.
+func _focus_viewport() -> void:
+	var vp: Viewport = tools.camera.get_viewport() if is_instance_valid(tools.camera) else EditorInterface.get_editor_viewport_3d(0)
+	var container: Control = vp.get_parent() as Control if vp != null else null
+	if container == null or container.get_parent() == null:
+		return
+	# Godot's viewport surface: the focusable sibling of the SubViewportContainer.
+	for child: Node in container.get_parent().get_children():
+		if child is Control and child != container and (child as Control).focus_mode == Control.FOCUS_ALL:
+			(child as Control).grab_focus()
+			return
 
 func _start_tool(tool: CsgBlockoutTool, mode: int, locked: bool = false) -> void:
 	if tools.active == tool:
@@ -428,12 +446,14 @@ func _exit_tree() -> void:
 	if sidebar and is_instance_valid(sidebar):
 		if sidebar.request_create_node.is_connected(_on_create_requested):
 			sidebar.request_create_node.disconnect(_on_create_requested)
+		if sidebar.action_requested.is_connected(_on_action_requested):
+			sidebar.action_requested.disconnect(_on_action_requested)
 		remove_control_from_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_SIDE_LEFT, sidebar)
 		sidebar.queue_free()
 		sidebar = null
 	if topbar and is_instance_valid(topbar):
-		if topbar.request_create_node.is_connected(_on_create_requested):
-			topbar.request_create_node.disconnect(_on_create_requested)
+		if topbar.action_requested.is_connected(_on_action_requested):
+			topbar.action_requested.disconnect(_on_action_requested)
 		remove_control_from_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, topbar)
 		topbar.queue_free()
 		topbar = null
