@@ -30,65 +30,52 @@ const TOOL_DOUBLE_CLICK_MS: int = 400
 var _last_tool_click: StringName = &""
 var _last_tool_click_time: int = 0
 
-func _get_shape_menu() -> Array[Dictionary]:
-	return [
-		{"label": CsgBlockoutI18n.t("BOX"), "type": "create_csg", "csg_type": "CSGBox3D"},
-		{"label": CsgBlockoutI18n.t("CYLINDER"), "type": "create_csg", "csg_type": "CSGCylinder3D"},
-		{"label": CsgBlockoutI18n.t("MESH"), "type": "create_csg", "csg_type": "CSGMesh3D"},
-		{"label": CsgBlockoutI18n.t("POLYGON"), "type": "create_csg", "csg_type": "CSGPolygon3D"},
-		{"label": CsgBlockoutI18n.t("SPHERE"), "type": "create_csg", "csg_type": "CSGSphere3D"},
-		{"label": CsgBlockoutI18n.t("TORUS"), "type": "create_csg", "csg_type": "CSGTorus3D"},
-		{"label": CsgBlockoutI18n.t("STAIRS"), "type": "create_csg", "csg_type": "CSGStairs3D"}
-	]
+static func _icon(file_name: String) -> Texture2D:
+	var path: String = csg_plugin_path.path_join("res/icons").path_join(file_name)
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
-## Six sectors: the boolean submenus keep their original directions (0°, 120°,
-## 240°) and the tool submenus fill the gaps between them.
+## Shapes ▸: primitives created as union on the surface under the cursor.
+func _get_shape_menu() -> Array[Dictionary]:
+	var shapes: Array[Dictionary] = []
+	for entry: Array in [
+		["BOX", "CSGBox3D", "box.svg"], ["CYLINDER", "CSGCylinder3D", "cyliner.svg"],
+		["STAIRS", "CSGStairs3D", "stairs.svg"], ["SPHERE", "CSGSphere3D", "sphere.svg"],
+		["TORUS", "CSGTorus3D", "torus.svg"], ["POLYGON", "CSGPolygon3D", "polygon.svg"],
+		["MESH", "CSGMesh3D", "mesh.svg"]]:
+		shapes.append({"label": CsgBlockoutI18n.t(entry[0]), "type": "create_csg", "csg_type": entry[1], "icon": _icon(entry[2])})
+	return shapes
+
+## Top level, clockwise from the top: the tools, Play, then the two submenus.
 func _get_pie_menu_items() -> Array[Dictionary]:
 	return [
-		{
-			"label": CsgBlockoutI18n.t("UNION"), "type": "submenu",
-			"operation": 0,
-			"children": _get_shape_menu()
-		},
-		{
-			"label": CsgBlockoutI18n.t("DRAW_MENU"), "type": "submenu",
-			"children": [
-				{"label": CsgBlockoutI18n.t("TOOL_BOX"), "type": "action", "action_id": &"draw_box"},
-				{"label": CsgBlockoutI18n.t("TOOL_ROOM"), "type": "action", "action_id": &"draw_room"},
-				{"label": CsgBlockoutI18n.t("TOOL_CUT"), "type": "action", "action_id": &"draw_cut"},
-			]
-		},
-		{
-			"label": CsgBlockoutI18n.t("INTERSECTION"), "type": "submenu",
-			"operation": 1,
-			"children": _get_shape_menu()
-		},
-		{
-			"label": CsgBlockoutI18n.t("OPENINGS_MENU"), "type": "submenu",
-			"children": [
-				{"label": CsgBlockoutI18n.t("DOOR"), "type": "action", "action_id": &"opening_door"},
-				{"label": CsgBlockoutI18n.t("WINDOW"), "type": "action", "action_id": &"opening_window"},
-			]
-		},
-		{
-			"label": CsgBlockoutI18n.t("SUBTRACTION"), "type": "submenu",
-			"operation": 2,
-			"children": _get_shape_menu()
-		},
-		{
-			"label": CsgBlockoutI18n.t("MORE_MENU"), "type": "submenu",
-			"children": _get_more_menu()
-		},
+		{"label": CsgBlockoutI18n.t("TOOL_BOX"), "type": "action", "action_id": &"draw_box", "icon": _icon("box.svg")},
+		{"label": CsgBlockoutI18n.t("TOOL_ROOM"), "type": "action", "action_id": &"draw_room", "icon": _icon("room.svg")},
+		{"label": CsgBlockoutI18n.t("TOOL_CUT"), "type": "action", "action_id": &"draw_cut", "icon": _icon("subtraction.svg")},
+		{"label": CsgBlockoutI18n.t("DOOR"), "type": "action", "action_id": &"opening_door", "icon": _icon("door.svg")},
+		{"label": CsgBlockoutI18n.t("WINDOW"), "type": "action", "action_id": &"opening_window", "icon": _icon("window.svg")},
+		{"label": CsgBlockoutI18n.t("PIE_PLAY"), "type": "action", "action_id": &"play_here_cursor", "icon": _icon("play_here.svg")},
+		{"label": CsgBlockoutI18n.t("PIE_SHAPES"), "type": "submenu", "icon": _icon("cyliner.svg"), "children": _get_shape_menu()},
+		{"label": CsgBlockoutI18n.t("MORE_MENU"), "type": "submenu", "children": _get_more_menu()},
 	]
 
+## More ▸: actions on the selection (dimmed until something fitting is selected).
 func _get_more_menu() -> Array[Dictionary]:
+	var targets: Dictionary = CsgBlockoutFreeze.selection_targets()
+	var frozen: bool = not (targets["frozen"] as Array).is_empty()
+	var freezable: bool = frozen or not (targets["roots"] as Array).is_empty()
+	var has_selection: bool = not CsgBlockoutSelection.top_level_nodes().is_empty()
+	var has_csg: bool = EditorInterface.get_selection().get_selected_nodes().any(func(n: Node) -> bool: return n is CSGShape3D)
+	var need_csg: String = CsgBlockoutI18n.t("REASON_SELECT_CSG")
+	var need_any: String = CsgBlockoutI18n.t("REASON_SELECT_ANY")
 	return [
-		{"label": CsgBlockoutI18n.t("FREEZE"), "type": "action", "action_id": &"freeze"},
-		{"label": CsgBlockoutI18n.t("UNFREEZE"), "type": "action", "action_id": &"unfreeze"},
-		{"label": CsgBlockoutI18n.t("ARRAY_MENU_ITEM"), "type": "action", "action_id": &"array"},
+		{"label": CsgBlockoutI18n.t("UNFREEZE" if frozen else "FREEZE"), "type": "action", "action_id": &"freeze_toggle",
+			"icon": _icon("unfreeze.svg" if frozen else "freeze.svg"), "disabled": not freezable, "reason": need_csg},
+		{"label": CsgBlockoutI18n.t("ARRAY_ACTION"), "type": "action", "action_id": &"array", "disabled": not has_selection, "reason": need_any},
+		{"label": CsgBlockoutI18n.t("PIE_SNAP"), "type": "action", "action_id": &"snap_to_grid", "disabled": not has_selection, "reason": need_any},
+		{"label": CsgBlockoutI18n.t("PIE_TO_UNION"), "type": "action", "action_id": &"set_op_union", "icon": _icon("union.svg"), "disabled": not has_csg, "reason": need_csg},
+		{"label": CsgBlockoutI18n.t("PIE_TO_SUBTRACT"), "type": "action", "action_id": &"set_op_subtract", "icon": _icon("subtraction.svg"), "disabled": not has_csg, "reason": need_csg},
+		{"label": CsgBlockoutI18n.t("PIE_TO_INTERSECT"), "type": "action", "action_id": &"set_op_intersect", "icon": _icon("intersection.svg"), "disabled": not has_csg, "reason": need_csg},
 		{"label": CsgBlockoutI18n.t("CSGPlayerReference3D"), "type": "action", "action_id": &"add_player_ref"},
-		{"label": CsgBlockoutI18n.t("PLAY_HERE"), "type": "action", "action_id": &"play_here_cursor"},
-		{"label": CsgBlockoutI18n.t("SNAP_SELECTION_TO_GRID"), "type": "action", "action_id": &"snap_to_grid"},
 	]
 
 func _enter_tree() -> void:
@@ -203,6 +190,10 @@ func _pie_menu_input(viewport_camera: Camera3D, event: InputEvent) -> int:
 				return EditorPlugin.AFTER_GUI_INPUT_STOP
 
 	if is_instance_valid(pie_menu):
+		if event is InputEventKey and (event as InputEventKey).keycode == KEY_ESCAPE:
+			if event.pressed:
+				_close_pie_menu()
+			return EditorPlugin.AFTER_GUI_INPUT_STOP
 		if event is InputEventMouseButton:
 			if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 				pie_menu.execute_active_item(true)
@@ -241,15 +232,16 @@ func _open_pie_menu(viewport_camera: Camera3D) -> void:
 	var global_pos: Vector2 = tools.to_global(tools.mouse_pos) if tools.has_mouse else base_control.get_global_mouse_position()
 	var mouse_pos: Vector2 = base_control.get_global_transform().affine_inverse() * global_pos
 
-	# Clamp position
-	var margin: float = pie_menu.outer_radius + 10.0 * ed_scale
+	# Keep the menu and its submenus inside the window.
+	var items: Array[Dictionary] = _get_pie_menu_items()
+	var margin: float = pie_menu.max_extent(items) + 8.0 * ed_scale
 	var rect_size: Vector2 = base_control.get_rect().size
-	mouse_pos.x = clampf(mouse_pos.x, margin, rect_size.x - margin)
-	mouse_pos.y = clampf(mouse_pos.y, margin, rect_size.y - margin)
+	mouse_pos.x = clampf(mouse_pos.x, minf(margin, rect_size.x * 0.5), maxf(rect_size.x - margin, rect_size.x * 0.5))
+	mouse_pos.y = clampf(mouse_pos.y, minf(margin, rect_size.y * 0.5), maxf(rect_size.y - margin, rect_size.y * 0.5))
 
 	pie_menu.position = mouse_pos
 	pie_menu.set_pointer_global(global_pos)
-	pie_menu.setup(_get_pie_menu_items(), ed_scale)
+	pie_menu.setup(items, ed_scale)
 	pie_menu_tab_pressed_time = Time.get_ticks_msec()
 
 func _close_pie_menu() -> void:
@@ -262,25 +254,20 @@ func _close_pie_menu() -> void:
 		pie_menu = null
 
 func _on_pie_menu_action_triggered(item: Dictionary) -> void:
-	var action_type: String = item.get("type", "")
+	match String(item.get("type", "")):
+		"action":
+			_on_action_requested(item.get("action_id", &""), true)
+		"create_csg":
+			var csg_type: String = item.get("csg_type", "")
+			if not csg_type.is_empty():
+				CsgBlockoutNodeFactory.create(csg_type, _pie_hit(), CSGShape3D.OPERATION_UNION)
 
-	if action_type == "submenu" and item.has("operation"):
-		var op: CSGShape3D.Operation = item.get("operation") as CSGShape3D.Operation
-		if config:
-			config.default_operation = op
-		CsgBlockoutNodeFactory.set_operation_on_selection(op)
-
-	elif action_type == "action":
-		_on_action_requested(item.get("action_id", &""), true)
-
-	elif action_type == "create_csg":
-		var csg_type: String = item.get("csg_type", "")
-		if not csg_type.is_empty():
-			var hit: CsgBlockoutRaycast.Hit = null
-			if is_instance_valid(_pie_camera):
-				tools.camera = _pie_camera
-				hit = tools.cast(_pie_screen_pos)
-			CsgBlockoutNodeFactory.create(csg_type, hit)
+## Surface under the point where the pie menu was opened (or null).
+func _pie_hit() -> CsgBlockoutRaycast.Hit:
+	if not is_instance_valid(_pie_camera):
+		return null
+	tools.camera = _pie_camera
+	return tools.cast(_pie_screen_pos)
 
 func _on_create_requested(csg_type: String) -> void:
 	CsgBlockoutNodeFactory.create(csg_type)
@@ -316,7 +303,13 @@ func _on_action_requested(action_id: StringName, from_pie: bool = false) -> void
 		&"refresh_overlays":
 			update_overlays()
 		&"add_player_ref":
-			CsgBlockoutNodeFactory.create("CSGPlayerReference3D", _viewport_center_hit())
+			CsgBlockoutNodeFactory.create("CSGPlayerReference3D", _pie_hit() if from_pie else _viewport_center_hit())
+		&"set_op_union":
+			_set_operation(CSGShape3D.OPERATION_UNION, "UNION")
+		&"set_op_subtract":
+			_set_operation(CSGShape3D.OPERATION_SUBTRACTION, "SUBTRACTION")
+		&"set_op_intersect":
+			_set_operation(CSGShape3D.OPERATION_INTERSECTION, "INTERSECTION")
 		&"check_jump":
 			CsgBlockoutMeasureOverlay.check_jump_between_selection()
 		&"play_here_cursor":
@@ -345,6 +338,14 @@ func _on_action_requested(action_id: StringName, from_pie: bool = false) -> void
 			var array_tool: CsgBlockoutTool = tools.get_tool(&"array")
 			if not CsgBlockoutSelection.top_level_nodes().is_empty():
 				tools.activate(array_tool)
+
+## Turns the selected CSG shapes into `op` and says so on the status line.
+func _set_operation(op: CSGShape3D.Operation, op_key: String) -> void:
+	var count: int = CsgBlockoutNodeFactory.set_operation_on_selection(op)
+	if count < 0:
+		CsgBlockoutStatus.show(CsgBlockoutI18n.t("REASON_SELECT_CSG"), true)
+	else:
+		CsgBlockoutStatus.show(CsgBlockoutI18n.tf("STATUS_OP_CHANGED", [count, CsgBlockoutI18n.t(op_key)]))
 
 ## Surface under the center of the last used 3D viewport (or null).
 func _viewport_center_hit() -> CsgBlockoutRaycast.Hit:

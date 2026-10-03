@@ -2,11 +2,13 @@
 class_name CsgBlockoutNodeFactory
 extends RefCounted
 ## The single creation path for the pie menu, sidebar and top bar.
-## Parent rules (unchanged from earlier versions): a selected combiner receives the
-## new node as a child; a selected shape gets it as the next sibling; otherwise it
-## goes under the scene root. When a surface hit is given, the node is placed on
-## that surface (resting on it for union/intersection, half-embedded for subtraction),
-## aligned to its normal and snapped to the grid.
+## With a surface hit (pie menu): the shape joins the CSG tree it was put on, like
+## a drawn box (see parent_for_hit), and sits on that surface (resting on it for
+## union/intersection, half-embedded for subtraction), aligned to its normal and
+## snapped to the grid.
+## Without one (sidebar, top bar): a selected combiner receives the new node as a
+## child; a selected shape gets it as the next sibling; otherwise it goes under the
+## scene root.
 
 const BASE_NAMES: Dictionary = {
 	"CSGBox3D": "Box",
@@ -40,16 +42,19 @@ static func instantiate(type_name: String) -> Node3D:
 	return null
 
 ## Creates `type_name` as one undo step and selects it. `hit` (optional) is a surface
-## under the cursor. Returns the created node or null.
-static func create(type_name: String, hit: CsgBlockoutRaycast.Hit = null) -> Node3D:
+## under the cursor. `op` is the boolean operation (-1: the sidebar's current one).
+## Returns the created node or null.
+static func create(type_name: String, hit: CsgBlockoutRaycast.Hit = null, op: int = -1) -> Node3D:
 	var node: Node3D = instantiate(type_name)
 	if node == null:
 		push_warning(CsgBlockoutI18n.t("WARN_UNSUPPORTED_CSG_TYPE"))
 		return null
 	var config: CsgBlockoutConfig = CsgBlockoutConfig.get_config()
-	var op: CSGShape3D.Operation = config.default_operation if config else CSGShape3D.OPERATION_UNION
+	var operation: CSGShape3D.Operation = op as CSGShape3D.Operation
+	if op < 0:
+		operation = config.default_operation if config else CSGShape3D.OPERATION_UNION
 	if node is CSGShape3D:
-		(node as CSGShape3D).operation = op
+		(node as CSGShape3D).operation = operation
 		if config:
 			(node as CSGShape3D).material = config.get_active_material()
 
@@ -59,25 +64,35 @@ static func create(type_name: String, hit: CsgBlockoutRaycast.Hit = null) -> Nod
 		node.free()
 		return null
 
-	var target: Dictionary = resolve_parent(node)
-	var parent: Node = target["parent"]
-	var index: int = target["index"]
-	var anchor: Node3D = target["anchor"]
-
+	var action_name: String = CsgBlockoutI18n.tf("CREATE_NODE", [CsgBlockoutI18n.t(type_name)])
+	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(action_name)
+	var on_surface: bool = hit != null and hit.is_valid()
+	var parent: Node
+	var index: int = -1
 	var xform: Transform3D
-	if hit != null and hit.is_valid():
-		xform = surface_transform(node, hit, op)
+	if on_surface and node is CSGShape3D:
+		var target: Dictionary = parent_for_hit(hit, operation)
+		parent = target["parent"]
+		index = target["index"]
+		if target["wrap"] != null:
+			parent = wrap_in_combiner(action, target["wrap"])
 	else:
-		# No cursor surface (sidebar/top bar click): start at the selection, snapped
-		# horizontally only so the height of the reference shape is kept.
-		var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
-		var origin: Vector3 = anchor.global_position if anchor != null else Vector3.ZERO
-		var snapped_origin: Vector3 = grid.snap_point(origin, grid.snap_enabled)
-		xform = Transform3D(Basis.IDENTITY, Vector3(snapped_origin.x, origin.y, snapped_origin.z))
+		var target: Dictionary = resolve_parent(node)
+		parent = target["parent"]
+		index = target["index"]
+		if not on_surface:
+			# No cursor surface (sidebar/top bar click): start at the selection, snapped
+			# horizontally only so the height of the reference shape is kept.
+			var anchor: Node3D = target["anchor"]
+			var grid: CsgBlockoutGrid = CsgBlockoutGrid.get_grid()
+			var origin: Vector3 = anchor.global_position if anchor != null else Vector3.ZERO
+			var snapped_origin: Vector3 = grid.snap_point(origin, grid.snap_enabled)
+			xform = Transform3D(Basis.IDENTITY, Vector3(snapped_origin.x, origin.y, snapped_origin.z))
+	if on_surface:
+		xform = surface_transform(node, hit, operation)
 
 	node.name = CsgBlockoutSceneOps.unique_child_name(parent, BASE_NAMES.get(type_name, type_name))
-	var action_name: String = CsgBlockoutI18n.tf("CREATE_NODE", [CsgBlockoutI18n.t(type_name)])
-	CsgBlockoutSceneOps.Action.new(action_name).add_node(parent, node, index, xform).select([node]).commit()
+	action.add_node(parent, node, index, xform).select([node]).commit()
 	return node
 
 ## Parent/index/anchor for a new node based on the current selection.
@@ -159,10 +174,16 @@ static func surface_transform(node: Node3D, hit: CsgBlockoutRaycast.Hit, op: CSG
 		pos += basis.y * lift
 	return Transform3D(basis, pos)
 
-## Sets the operation of every selected CSG shape as one undo step.
-static func set_operation_on_selection(op: CSGShape3D.Operation) -> void:
+## Sets the operation of every selected CSG shape as one undo step. Returns how
+## many selected shapes there are (-1 when none is a CSG shape).
+static func set_operation_on_selection(op: CSGShape3D.Operation) -> int:
 	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(CsgBlockoutI18n.t("CHANGE_CSG_OPS"))
+	var count: int = 0
 	for n: Node in EditorInterface.get_selection().get_selected_nodes():
-		if n is CSGShape3D and (n as CSGShape3D).operation != op:
+		if not (n is CSGShape3D):
+			continue
+		count += 1
+		if (n as CSGShape3D).operation != op:
 			action.set_property(n, &"operation", op)
 	action.commit()
+	return count if count > 0 else -1

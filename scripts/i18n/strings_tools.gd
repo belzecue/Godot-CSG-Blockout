@@ -45,10 +45,6 @@ const STRINGS: Dictionary = {
 		"zh": "沿轴复制", "en": "Duplicate Along Axis", "ja": "軸に沿って複製", "ko": "축을 따라 복제",
 		"es": "Duplicar a lo largo de un eje", "pt": "Duplicar ao longo do eixo", "ru": "Дублировать вдоль оси",
 	},
-	"ARRAY_MENU_ITEM": {
-		"zh": "沿轴复制 (Ctrl+Shift+D)", "en": "Duplicate Along Axis (Ctrl+Shift+D)", "ja": "軸に沿って複製 (Ctrl+Shift+D)", "ko": "축을 따라 복제 (Ctrl+Shift+D)",
-		"es": "Duplicar a lo largo de un eje (Ctrl+Mayús+D)", "pt": "Duplicar ao longo do eixo (Ctrl+Shift+D)", "ru": "Дублировать вдоль оси (Ctrl+Shift+D)",
-	},
 	"ARRAY_LABEL": {
 		"zh": "×%d · 间距 %s m · 轴 %s", "en": "×%d · step %s m · axis %s", "ja": "×%d · 間隔 %s m · 軸 %s", "ko": "×%d · 간격 %s m · 축 %s",
 		"es": "×%d · paso %s m · eje %s", "pt": "×%d · passo %s m · eixo %s", "ru": "×%d · шаг %s м · ось %s",
@@ -64,14 +60,6 @@ const STRINGS: Dictionary = {
 	"FRAME": {
 		"zh": "带框", "en": "Frame", "ja": "枠あり", "ko": "틀 포함",
 		"es": "Marco", "pt": "Moldura", "ru": "Рама",
-	},
-	"DRAW_MENU": {
-		"zh": "绘制", "en": "Draw", "ja": "描画", "ko": "그리기",
-		"es": "Dibujar", "pt": "Desenhar", "ru": "Рисовать",
-	},
-	"OPENINGS_MENU": {
-		"zh": "开洞", "en": "Openings", "ja": "開口", "ko": "개구부",
-		"es": "Huecos", "pt": "Aberturas", "ru": "Проёмы",
 	},
 	"MORE_MENU": {
 		"zh": "更多", "en": "More", "ja": "その他", "ko": "더 보기",
@@ -180,5 +168,41 @@ const STRINGS: Dictionary = {
 	"STATUS_TREE_SELECTED": {
 		"zh": "已选中整棵树：%s", "en": "Selected the whole tree: %s", "ja": "ツリー全体を選択：%s", "ko": "트리 전체 선택: %s",
 		"es": "Árbol completo seleccionado: %s", "pt": "Árvore inteira selecionada: %s", "ru": "Выбрано всё дерево: %s",
+	},
+	"PIE_PLAY": {
+		"zh": "试玩", "en": "Play", "ja": "プレイ", "ko": "플레이",
+		"es": "Jugar", "pt": "Jogar", "ru": "Играть",
+	},
+	"PIE_SHAPES": {
+		"zh": "形状", "en": "Shapes", "ja": "形状", "ko": "도형",
+		"es": "Formas", "pt": "Formas", "ru": "Фигуры",
+	},
+	"PIE_SNAP": {
+		"zh": "对齐栅格", "en": "Snap to Grid", "ja": "グリッドに揃える", "ko": "그리드에 맞추기",
+		"es": "Ajustar a la cuadrícula", "pt": "Alinhar à grade", "ru": "По сетке",
+	},
+	"PIE_TO_UNION": {
+		"zh": "改为并集", "en": "Make Union", "ja": "和集合にする", "ko": "합집합으로",
+		"es": "Convertir en unión", "pt": "Tornar união", "ru": "Сделать объединением",
+	},
+	"PIE_TO_SUBTRACT": {
+		"zh": "改为差集", "en": "Make Subtraction", "ja": "差集合にする", "ko": "차집합으로",
+		"es": "Convertir en sustracción", "pt": "Tornar subtração", "ru": "Сделать вычитанием",
+	},
+	"PIE_TO_INTERSECT": {
+		"zh": "改为交集", "en": "Make Intersection", "ja": "積集合にする", "ko": "교집합으로",
+		"es": "Convertir en intersección", "pt": "Tornar interseção", "ru": "Сделать пересечением",
+	},
+	"REASON_SELECT_CSG": {
+		"zh": "先选中 CSG 物体", "en": "Select a CSG shape first", "ja": "先に CSG を選択してください", "ko": "먼저 CSG를 선택하세요",
+		"es": "Selecciona primero una forma CSG", "pt": "Selecione primeiro uma forma CSG", "ru": "Сначала выберите CSG-фигуру",
+	},
+	"REASON_SELECT_ANY": {
+		"zh": "先选中物体", "en": "Select something first", "ja": "先にオブジェクトを選択してください", "ko": "먼저 대상을 선택하세요",
+		"es": "Selecciona algo primero", "pt": "Selecione algo primeiro", "ru": "Сначала выберите объект",
+	},
+	"STATUS_OP_CHANGED": {
+		"zh": "已把 %d 个改为%s", "en": "Changed %d to %s", "ja": "%d 個を%sに変更しました", "ko": "%d개를 %s(으)로 변경했습니다",
+		"es": "%d cambiados a %s", "pt": "%d alterados para %s", "ru": "Изменено: %d → %s",
 	},
 }
