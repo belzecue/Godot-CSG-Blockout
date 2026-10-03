@@ -37,7 +37,7 @@
 | `scripts/runtime/` | 在游戏里运行的脚本：从这里试玩的启动场景与测试小人。它们不能引用任何编辑器类。 |
 | `scripts/patterns/` | `CSGRepeater3D` 使用的 `CSGPattern` 资源。 |
 | `scripts/i18n/` | 7 种界面语言的文案表，由 `CsgBlockoutI18n` 合并。 |
-| `scripts/`（根目录） | 饼菜单、侧边栏、顶栏、配置（`CsgBlockoutConfig`），以及自定义节点 `CSGRepeater3D`、`CSGSpreader3D`、`CSGStairs3D`、`CSGRuler3D`。 |
+| `scripts/`（根目录） | 饼菜单、视口左侧的工具面板、工具栏、快捷键速查窗口、配置（`CsgBlockoutConfig`），以及自定义节点 `CSGRepeater3D`、`CSGSpreader3D`、`CSGStairs3D`、`CSGRuler3D`。工具面板和工具栏在代码里构建控件，没有对应的 `.tscn`。 |
 | `benchmarks/` | 可复现的性能基准（[BENCHMARKS_CN.md](BENCHMARKS_CN.md)），不包含在资源商店的下载包里。 |
 
 ```mermaid
@@ -45,15 +45,16 @@ graph TD
     Plugin["csg_blockout.gd (EditorPlugin)"]
     subgraph UI
         Pie["饼菜单"]
-        TopBar["顶栏"]
-        SideBar["侧边栏"]
+        TopBar["工具栏"]
+        SideBar["工具面板"]
         Dock["白盒面板（大纲 + 检查）"]
         Panels["Inspector 面板（冻结节点、CSGMesh3D）"]
     end
     subgraph Tools["视口工具"]
         Manager["CsgBlockoutToolManager"]
         Draw["绘制 / 开洞 / 沿轴复制"]
-        Passive["快捷键 / 面推拉 / 尺寸标注"]
+        Passive["快捷键 / 面推拉箭头 / 双击选树 / 尺寸标注"]
+        Hud["提示卡片 + 状态行"]
     end
     subgraph Core
         Ops["CsgBlockoutSceneOps（撤销）"]
@@ -69,7 +70,7 @@ graph TD
     end
     Plugin --> Pie & TopBar & SideBar & Dock & Panels
     Plugin --> Manager
-    Manager --> Draw & Passive
+    Manager --> Draw & Passive & Hud
     Draw & Passive --> Ray & Grid & Ghost & Ops
     TopBar & Panels --> Freeze
     Freeze --> Pipeline & Ops
@@ -83,13 +84,16 @@ graph TD
 
 插件常驻开启输入转发（`set_input_event_forwarding_always_enabled`），并在所有 3D 视口上层绘制叠加信息（`set_force_draw_over_forwarding_enabled`）。`_forward_3d_gui_input` 按以下顺序分发每个事件：
 
-1. **饼菜单**：配置的修饰键 + `A` 打开；打开期间其他部分都收不到事件。按住鼠标右键（飞行导航）时不会打开。
-2. **鼠标右键**：始终交给 Godot 的自由视角。右键单击而没有移动时，会取消当前工具。
-3. **当前的模态工具**（绘制、开洞、沿轴复制）：`Esc` 取消，其余事件它优先处理。
-4. **被动工具**，依次为：键盘变换与栅格键（`CsgBlockoutTransformHotkeys`）、面推拉（`CsgBlockoutFaceDrag`）、尺寸标注（`CsgBlockoutMeasureOverlay`）。
-5. 其余事件原样交还给 Godot。
+1. **饼菜单**：配置的修饰键 + `A` 打开；打开期间其他部分都收不到事件（`Esc` 关闭）。按住鼠标右键（飞行导航）时不会打开。
+2. **HUD**：点击提示卡片上的按键和 **Esc**、点击状态行上的操作（"下一个 ›"），由工具管理器处理。
+3. **鼠标右键**：始终交给 Godot 的自由视角。右键单击而没有移动时，会退出当前工具。
+4. **当前的模态工具**（绘制、开洞、沿轴复制）：`Esc` 退出，其余事件它优先处理。
+5. **被动工具**，按输入优先级：尺寸标注（`CsgBlockoutMeasureOverlay`，标注画在箭头上层，所以最先处理）、键盘变换与栅格键（`CsgBlockoutTransformHotkeys`）、面推拉箭头（`CsgBlockoutFaceDrag`）、双击选中整棵树（`CsgBlockoutTreeSelect`）。
+6. 其余事件原样交还给 Godot。
 
-工具继承 `CsgBlockoutTool`（`input`、`draw_overlay`、`cancel`），返回 `PASS` 或 `STOP`。按键匹配的是注册在编辑器设置 `csg_blockout/` 下的快捷键；除了你自己绑定的"从这里试玩"键，其余快捷键只在选中白盒或工具激活时才会拦截。
+工具继承 `CsgBlockoutTool`（`input`、`draw_overlay`、`cancel`、`chip`），返回 `PASS` 或 `STOP`。模态工具用一次就结束：产出一个结果后调用 `manager.finish()`，除非用户双击按钮锁定了工具。没有拖动的单击会结束工具并选中光标下的物体（`manager.select_at()`），所以工具不会"困住"鼠标。
+
+`chip()` 给视口顶部的提示卡片提供内容：标题、下一步、以及工具接受的按键。反馈写在卡片下方的状态行（`CsgBlockoutStatus.report()`）：一句话，最多带一个可点击的操作，几秒后淡出。错误和之后还需要看到的警告会同时发到 Godot 的通知里。按键匹配的是注册在编辑器设置 `csg_blockout/` 下的快捷键；除了你自己绑定的"从这里试玩"键，其余快捷键只在选中白盒或工具激活时才会拦截。
 
 预览（绘制幽灵、切割预览、复制副本、问题边）都是 `RenderingServer` 实例：不进场景树，不把场景标为已修改，也不产生撤销记录。重活都在松开鼠标时才做，拖动过程中只移动幽灵预览。
 
@@ -103,7 +107,7 @@ graph TD
 - 撤销时恢复**选区**。
 - **合并**：连续的微调会合并成一次撤销。
 
-饼菜单、侧边栏和所有工具都用它，所以创建、切割、推拉面、冻结和解冻的撤销方式完全一致。
+饼菜单、工具面板和所有工具都用它，所以创建、切割、推拉面、冻结和解冻的撤销方式完全一致。
 
 ---
 
@@ -282,10 +286,8 @@ graph TD
 | 设置 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `action_key` | `int`（按键） | `KEY_SHIFT` | 与 `A` 组合打开饼菜单的修饰键。 |
-| `auto_hide` | `bool` | `true` | 没有选中 CSG 节点时隐藏侧边栏。 |
 | `language_override` | `String` | `"auto"` | 界面语言（`auto`、`en`、`zh_CN`、`ja`、`ko`、`es`、`pt`、`ru`）。 |
 | `material_preset` | `int`（枚举） | `1`（灰白网格） | 当前的网格材质预设。 |
-| `default_operation` | `int`（枚举） | `0`（并集） | 新形状使用的布尔运算。 |
 | `custom_material_path` | `String` | `""` | 自定义预设使用的材质。 |
 | `player_metrics/character_height` | `float` | `1.8` | 站立高度（米）。 |
 | `player_metrics/single_jump_height` | `float` | `1.5` | 跳跃能够到的最高台面（米）。 |
@@ -297,6 +299,7 @@ graph TD
 | `room/wall_thickness` | `float` | `0.25` | 绘制房间的墙厚（米）。 |
 | `room/floor_thickness` | `float` | `0.25` | 绘制房间的地板厚度（米）。 |
 | `room/open_top` | `bool` | `true` | 绘制的房间不带顶。 |
+| `room/height` | `float` | `3.0` | 绘制的房间高度（米）。 |
 | `openings/door_size` | `Vector2` | `(1.0, 2.1)` | 门的宽和高（米）。 |
 | `openings/window_size` | `Vector2` | `(1.2, 1.2)` | 窗的宽和高（米）。 |
 | `openings/window_sill_height` | `float` | `0.9` | 窗台离地高度（米）。 |
@@ -311,4 +314,5 @@ graph TD
 
 ### 编辑器设置
 - **快捷键**，位于 `csg_blockout/` 下：`grid_smaller`、`grid_bigger`、`nudge_left`、`nudge_right`、`nudge_forward`、`nudge_back`、`nudge_up`、`nudge_down`、`drop_to_surface`、`rotate_ccw`、`rotate_cw`、`array_duplicate`、`play_here`。
-- **按项目保存的编辑器状态**存在编辑器设置的项目元数据里（属于个人设置，不会写进 `project.godot`），分区 `csg_blockout`：`grid_size`、`grid_snap`、`show_dimensions`、`mesh_library_path`。
+- **按项目保存的编辑器状态**存在编辑器设置的项目元数据里（属于个人设置，不会写进 `project.godot`），分区 `csg_blockout`：`grid_size`、`grid_snap`、`show_dimensions`、`mesh_library_path`、`draw_box_height`（新方块的高度：上一个画出的方块的高度，调整那个方块时随之更新）。
+- 旧版本的 `auto_hide` 和 `default_operation` 项目设置已移除，插件加载时会从 `project.godot` 里清掉。

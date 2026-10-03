@@ -69,12 +69,14 @@ In Godot, go to **Project -> Project Settings -> Plugins**, find **CSG_Blockout*
 
 ## Quick Start
 
-1. **Draw a room**: press `Shift + A` in the 3D viewport and pick **Draw ▸ Room** (or click the draw buttons in the top bar). Drag the floor outline on the ground, release, move the mouse up to set the height, and click.
-2. **Cut a doorway**: pick **Openings ▸ Door** and click a wall. The cut is aligned to the wall, goes through its full thickness and sits on the floor. Scroll to change the width.
-3. **Shape it**: `Shift`-drag a face to push or pull it, use the arrow keys to nudge by one grid step, and `[` / `]` to change the grid size.
-4. **Check the scale**: selected shapes show their width × height × depth. Add a **Player Reference** to see your character's capsule, jump height and sprint-jump arc, and click **Check** (⚠ in the top bar) to flag slopes that are too steep and ceilings that are too low.
-5. **Play it**: click **▶ Play From Here** to drop a first-person test character at the spot you're looking at. It jumps as high and as far as your player metrics say.
+1. **Draw a room**: click **Room** in the tool palette on the left of the viewport (or press `Shift + A` and pick it from the pie menu), then drag the floor outline on the ground. Releasing the mouse builds the room.
+2. **Cut a doorway**: click **Door**, then click a wall. The cut is aligned to the wall, goes through its full thickness and sits on the floor.
+3. **Shape it**: drag the arrows on a selected shape's faces to push or pull them, or click a dimension label and type a size. The arrow keys nudge by one grid step and `[` / `]` change the grid size.
+4. **Check the scale**: add a **Player Reference** to see your character's capsule, jump height and sprint-jump arc, then click **Check** in the toolbar. Steep slopes and low ceilings are highlighted, and **Next ›** takes you from one to the next.
+5. **Play it**: click **Play** to drop a first-person test character at the spot you're looking at. It jumps as high and as far as your player metrics say.
 6. **Freeze it**: click **Freeze** when the room is done. Unfreeze it whenever you want to change it again.
+
+Every tool does one thing and hands control back, and the card at the top of the viewport always says what the next step is. Double-click a tool to keep it on; `Esc` or a right-click leaves it. **⋯ › Shortcuts** lists every key.
 
 > The full walkthrough, including freezing, MeshLibrary/glTF export and the procedural tools, is in the [tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md).
 
@@ -83,11 +85,11 @@ In Godot, go to **Project -> Project Settings -> Plugins**, find **CSG_Blockout*
 ## Features
 
 ### Build
-- **Draw in the viewport**: drag a base on any surface or the ground, then set the height. In Subtraction mode the same tool cuts into the surface, and the cut lands in the combiner that owns it. The **Room** variant makes a hollow shell with configurable wall thickness.
-- **Doors and windows**: click a wall to cut a doorway or a window at sill height, with an optional frame. Sizes are in Project Settings.
-- **Face push/pull**: `Shift`-drag a face of a box, cylinder or stairs along its normal; the opposite face stays put.
+- **Draw in one drag**: drag a base on any surface or the ground and release; the box gets the height you used last. **Cut** drags an opening into a surface and cuts through it; the cut lands in the CSG tree it was drawn on (a lone wall is wrapped into a combiner automatically). **Room** makes a hollow shell with configurable wall thickness.
+- **Doors and windows**: click a wall to cut a doorway or a window at sill height, with an optional frame (`F`). Sizes are in Project Settings.
+- **Face arrows and typed sizes**: a selected box, cylinder or stairs shows an arrow on each face toward you; drag it to push or pull that face while the opposite one stays put. Click a dimension label to type an exact size.
 - **Grid and snapping**: one grid (0.125–8 m) for every tool, keyboard nudging, rotation in 15° steps, drop to the surface below, duplicate along an axis (`Ctrl + Shift + D`).
-- **Pie menu and sidebar**: `Shift + A` opens a pie menu at the cursor for shapes, boolean modes, drawing tools and openings; the viewport sidebar creates shapes with one click.
+- **Tool palette and pie menu**: the palette on the left of the viewport is always there, with named tools, shapes, the operation of the selected shapes, materials and helpers. `Shift + A` opens the same tools as a pie menu at the cursor. Double-click a shape to select its whole CSG tree.
 - **Stairs and ramps** (`CSGStairs3D`): set height, depth, width and step count, or switch to a smooth ramp. Warns when steps are uncomfortable.
 - **Grid materials that never stretch**: world-aligned 1 m grid in light, dark and orange, batch-applied to the selection.
 
@@ -127,14 +129,20 @@ All viewport shortcuts can be rebound in **Editor Settings > Shortcuts > csg_blo
 | Action | Default |
 | :--- | :--- |
 | Pie menu | `Shift + A` (modifier set in Project Settings) |
+| Keep a tool on | Double-click its button |
 | Grid smaller / bigger | `[` / `]` |
 | Nudge one grid step | Arrow keys (horizontal, relative to the view), `Page Up` / `Page Down` (vertical); `Shift` for a quarter step |
 | Rotate 15° (`Shift`: 90°) | `,` / `.` |
 | Drop onto the surface below | `End` |
 | Duplicate along an axis | `Ctrl + Shift + D` |
-| Push/pull a face | `Shift` + drag |
+| Push/pull a face | Drag the arrow on the face |
+| Exact size | Click a dimension label, type, `Enter` |
+| Select the whole CSG tree | Double-click a shape |
+| Draw a box as a separate object | Hold `Shift` while drawing |
 | Play From Here at the cursor | Unbound (assign one if you like) |
-| Cancel a tool | `Esc` or right-click |
+| Leave a tool | `Esc` or right-click |
+
+The same list is in the editor under **⋯ › Shortcuts**.
 
 ---
 
@@ -161,8 +169,8 @@ This plugin originated from the open-source [CSG Toolkit](https://godotengine.or
 | | Original CSG Toolkit | CSG_Blockout |
 | :--- | :--- | :--- |
 | **Engine** | Early Godot 4.x | Godot 4.6+, fully statically typed GDScript |
-| **Creating shapes** | Viewport sidebar | Draw in the viewport, pie menu at the cursor, sidebar |
-| **Editing** | Godot gizmos | Face push/pull, shared grid and snapping, keyboard nudging, duplicate along an axis |
+| **Creating shapes** | Viewport sidebar | Draw in one drag, pie menu at the cursor, tool palette |
+| **Editing** | Godot gizmos | Face arrows, typed sizes, shared grid and snapping, keyboard nudging, duplicate along an axis |
 | **Level design aids** | — | Doors/windows, stairs, dimension labels, player reference, level check, jump check, ruler, Play From Here |
 | **Baking** | — | Reversible freeze with collision/UV2/occluder/LOD options; MeshLibrary and glTF export |
 | **Organization** | — | Blockout outliner with solo, lock and semantic names |

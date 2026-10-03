@@ -37,7 +37,7 @@ This document is for developers who want to know how `CSG_Blockout` works inside
 | `scripts/runtime/` | Scripts that run in the game: the Play From Here launcher and test character. They must not reference editor classes. |
 | `scripts/patterns/` | `CSGPattern` resources used by `CSGRepeater3D`. |
 | `scripts/i18n/` | String tables for the 7 interface languages, merged by `CsgBlockoutI18n`. |
-| `scripts/` (root) | The pie menu, sidebar, top bar, configuration (`CsgBlockoutConfig`), and the custom nodes `CSGRepeater3D`, `CSGSpreader3D`, `CSGStairs3D`, `CSGRuler3D`. |
+| `scripts/` (root) | The pie menu, the tool palette (left of the viewport), the toolbar, the shortcut cheat sheet, configuration (`CsgBlockoutConfig`), and the custom nodes `CSGRepeater3D`, `CSGSpreader3D`, `CSGStairs3D`, `CSGRuler3D`. The palette and toolbar build their controls in code; there are no `.tscn` files for them. |
 | `benchmarks/` | The reproducible benchmark ([BENCHMARKS.md](BENCHMARKS.md)); excluded from Asset Library downloads. |
 
 ```mermaid
@@ -45,15 +45,16 @@ graph TD
     Plugin["csg_blockout.gd (EditorPlugin)"]
     subgraph UI
         Pie["Pie menu"]
-        TopBar["Top bar"]
-        SideBar["Sidebar"]
+        TopBar["Toolbar"]
+        SideBar["Tool palette"]
         Dock["Blockout dock (outliner + checks)"]
         Panels["Inspector panels (frozen node, CSGMesh3D)"]
     end
     subgraph Tools["Viewport tools"]
         Manager["CsgBlockoutToolManager"]
         Draw["Draw / Openings / Array"]
-        Passive["Hotkeys / Face drag / Dimension labels"]
+        Passive["Hotkeys / Face arrows / Tree select / Dimension labels"]
+        Hud["Hint card + status line"]
     end
     subgraph Core
         Ops["CsgBlockoutSceneOps (undo)"]
@@ -69,7 +70,7 @@ graph TD
     end
     Plugin --> Pie & TopBar & SideBar & Dock & Panels
     Plugin --> Manager
-    Manager --> Draw & Passive
+    Manager --> Draw & Passive & Hud
     Draw & Passive --> Ray & Grid & Ghost & Ops
     TopBar & Panels --> Freeze
     Freeze --> Pipeline & Ops
@@ -83,13 +84,16 @@ graph TD
 
 The plugin enables input forwarding permanently (`set_input_event_forwarding_always_enabled`) and draws its overlays over every 3D viewport (`set_force_draw_over_forwarding_enabled`). `_forward_3d_gui_input` routes each event in this order:
 
-1. **Pie menu**: the configured modifier + `A` opens it; nothing else sees the event while it's open. It never opens while the right mouse button is held (fly navigation).
-2. **Right mouse button**: always passed to Godot's freelook. A right-click without movement cancels the active tool.
-3. **Active modal tool** (draw, openings, duplicate along an axis): `Esc` cancels it, otherwise it gets the event first.
-4. **Passive tools**, in order: keyboard transforms and the grid keys (`CsgBlockoutTransformHotkeys`), face push/pull (`CsgBlockoutFaceDrag`), dimension labels (`CsgBlockoutMeasureOverlay`).
-5. Everything else passes through to Godot.
+1. **Pie menu**: the configured modifier + `A` opens it; nothing else sees the event while it's open (`Esc` closes it). It never opens while the right mouse button is held (fly navigation).
+2. **HUD**: clicks on the hint card's key caps and **Esc**, and on the status line's action ("Next ›"), are handled by the tool manager.
+3. **Right mouse button**: always passed to Godot's freelook. A right-click without movement leaves the active tool.
+4. **Active modal tool** (draw, openings, duplicate along an axis): `Esc` leaves it, otherwise it gets the event first.
+5. **Passive tools**, by input priority: dimension labels (`CsgBlockoutMeasureOverlay`, first because labels are drawn over the arrows), keyboard transforms and the grid keys (`CsgBlockoutTransformHotkeys`), face arrows (`CsgBlockoutFaceDrag`), double-click tree selection (`CsgBlockoutTreeSelect`).
+6. Everything else passes through to Godot.
 
-Tools derive from `CsgBlockoutTool` (`input`, `draw_overlay`, `cancel`) and return `PASS` or `STOP`. Keys are matched against shortcuts registered in Editor Settings under `csg_blockout/`; apart from a Play From Here key you bind yourself, they are only intercepted while blockout is selected or a tool is active.
+Tools derive from `CsgBlockoutTool` (`input`, `draw_overlay`, `cancel`, `chip`) and return `PASS` or `STOP`. Modal tools are one-shot: after one result they call `manager.finish()`, which ends them unless the user locked the tool with a double-click on its button. A click that doesn't start a drag ends the tool and selects what's under the cursor (`manager.select_at()`), so a tool never traps the mouse.
+
+`chip()` describes the tool for the hint card at the top of the viewport: a title, the next step, and key caps for the options it takes. Feedback goes to the status line below it (`CsgBlockoutStatus.report()`): a message, optionally one clickable action, fading after a few seconds. Errors, and warnings that matter later, are also sent to Godot's toaster. Keys are matched against shortcuts registered in Editor Settings under `csg_blockout/`; apart from a Play From Here key you bind yourself, they are only intercepted while blockout is selected or a tool is active.
 
 Previews (the draw ghost, cut previews, array copies, problem edges) are `RenderingServer` instances: they never enter the scene tree, never mark the scene as modified and never create undo entries. Heavy work happens on release: while you drag, only the ghost moves.
 
@@ -103,7 +107,7 @@ Every scene change goes through `CsgBlockoutSceneOps.Action`, which collects `ad
 - **Selection** is restored on undo.
 - **Merging**: repeated nudges merge into one undo step.
 
-The pie menu, the sidebar and every tool share it, so creating, cutting, pushing a face, freezing and unfreezing all undo the same way.
+The pie menu, the palette and every tool share it, so creating, cutting, pushing a face, freezing and unfreezing all undo the same way.
 
 ---
 
@@ -282,10 +286,8 @@ Editor-only (removed when the game runs and on export). The gizmo draws the caps
 | Setting | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `action_key` | `int` (Key) | `KEY_SHIFT` | Modifier that opens the pie menu with `A`. |
-| `auto_hide` | `bool` | `true` | Hides the sidebar when no CSG node is selected. |
 | `language_override` | `String` | `"auto"` | Interface language (`auto`, `en`, `zh_CN`, `ja`, `ko`, `es`, `pt`, `ru`). |
 | `material_preset` | `int` (enum) | `1` (light grid) | Active grid material preset. |
-| `default_operation` | `int` (enum) | `0` (union) | Boolean operation for new shapes. |
 | `custom_material_path` | `String` | `""` | Material used by the custom preset. |
 | `player_metrics/character_height` | `float` | `1.8` | Standing height (m). |
 | `player_metrics/single_jump_height` | `float` | `1.5` | Highest ledge a jump reaches (m). |
@@ -297,6 +299,7 @@ Editor-only (removed when the game runs and on export). The gizmo draws the caps
 | `room/wall_thickness` | `float` | `0.25` | Wall thickness of drawn rooms (m). |
 | `room/floor_thickness` | `float` | `0.25` | Floor thickness of drawn rooms (m). |
 | `room/open_top` | `bool` | `true` | Drawn rooms have no ceiling. |
+| `room/height` | `float` | `3.0` | Height of drawn rooms (m). |
 | `openings/door_size` | `Vector2` | `(1.0, 2.1)` | Door width and height (m). |
 | `openings/window_size` | `Vector2` | `(1.2, 1.2)` | Window width and height (m). |
 | `openings/window_sill_height` | `float` | `0.9` | Window sill height above the floor (m). |
@@ -311,4 +314,5 @@ Editor-only (removed when the game runs and on export). The gizmo draws the caps
 
 ### Editor Settings
 - **Shortcuts** under `csg_blockout/`: `grid_smaller`, `grid_bigger`, `nudge_left`, `nudge_right`, `nudge_forward`, `nudge_back`, `nudge_up`, `nudge_down`, `drop_to_surface`, `rotate_ccw`, `rotate_cw`, `array_duplicate`, `play_here`.
-- **Per-project editor state** is kept as project metadata in Editor Settings (personal, never written to `project.godot`), section `csg_blockout`: `grid_size`, `grid_snap`, `show_dimensions`, `mesh_library_path`.
+- **Per-project editor state** is kept as project metadata in Editor Settings (personal, never written to `project.godot`), section `csg_blockout`: `grid_size`, `grid_snap`, `show_dimensions`, `mesh_library_path`, `draw_box_height` (the height new boxes get: the last drawn box's height, updated when you resize that box).
+- Earlier versions had `auto_hide` and `default_operation` project settings; they are removed from `project.godot` when the plugin loads.

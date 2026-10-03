@@ -27,36 +27,43 @@ In Godot, every CSG node inside a `CSGCombiner3D` (or any CSG parent) contribute
 
 ## 2. Blocking Out a Room
 
+### The tool palette and the pie menu
+The palette on the left of the 3D viewport is always there. From the top: the drawing tools **Box**, **Room**, **Cut**, **Door** and **Window**; the primitives; the boolean operation of the selected shapes; grid materials; and the level helpers (ruler, player reference). `Shift + A` opens the same tools as a pie menu at the cursor, with **Play**, **Shapes ›** and **More ›** (freeze, duplicate, snap, change the operation, player reference).
+
+![The tool palette with a selected box: face arrows, dimension labels and its operation](DocsImages/Palette_EN.webp)
+
+![The pie menu](DocsImages/PieMenu_EN.webp)
+
+A tool does one thing and hands control back: draw one box or cut one door, and you're back to selecting. **Double-click** a tool to keep it on for several uses. While a tool is on, the card at the top of the viewport names it, says what to do next and shows the keys it takes; `Esc`, a right-click or the card's **Esc** leaves it.
+
+![A tool's hint card](DocsImages/ToolHint_EN.webp)
+
 ### Draw a room or a box
-1. Press `Shift + A` in the 3D viewport to open the pie menu at the cursor and pick **Draw ▸ Room** (or **Draw ▸ Box**). The two draw buttons in the top bar do the same.
-2. Drag the base on the ground or on any surface. A ghost preview shows the result and its size.
-3. Release, move the mouse to set the height, and click to confirm. `Esc` or a right-click cancels.
+1. Click **Room** (or **Box**) and drag the base on the ground or on any surface. A ghost preview shows the result and its size.
+2. Release: a room is built with the height from Project Settings (`addons/csg_blockout/room/height`), a box with the height you gave your last box (1 m to start with).
+3. A click without dragging just selects what's under the cursor and leaves the tool.
 
-A **room** is a regular `CSGCombiner3D` holding a shell box and a hollow cut out of it. Wall and floor thickness, and whether the top is open, are in Project Settings under `addons/csg_blockout/room`.
+A **room** is its own `CSGCombiner3D` holding a shell box and a hollow cut out of it. Wall and floor thickness, and whether the top is open, are in Project Settings under `addons/csg_blockout/room`.
 
-Where new shapes go: inside the selected combiner if there is one, otherwise into the CSG tree of the surface you started on, otherwise at the scene root.
+A box drawn on a CSG surface joins that surface's tree (so it merges with it); drawn on empty ground it goes to the scene root. Hold `Shift` while drawing to make it a separate object anyway.
 
-### Cut doors and windows
-- Pick **Openings ▸ Door** or **Openings ▸ Window**, hover a wall and click. The cut is aligned to the wall and goes through its measured thickness. A door drops to the floor; a window sits at sill height.
-- Scroll to change the width, `Shift` + scroll for the height, and press `F` to add a frame.
-- For any other cut, switch the operation to **Subtraction** and use the draw tool: the box extrudes into the surface and lands in the combiner that owns it. A lone wall gets wrapped into a new combiner automatically.
+### Cut doors, windows and openings
+- Click **Door** or **Window**, hover a wall and click. The cut is aligned to the wall and goes through its measured thickness. A door drops to the floor; a window sits at sill height. Press `F` to add a frame. Sizes are in Project Settings under `addons/csg_blockout/openings`.
+- For any other opening, use **Cut**: drag the outline on a surface and release, and it cuts straight through. The cut lands in the CSG tree it was drawn on; a lone wall gets wrapped into a new combiner automatically.
 
 ### Shape and arrange
-- **Push/pull a face**: `Shift`-drag a face of a selected box, cylinder or stairs. The opposite face stays put and the face snaps to the grid. A `Shift`-click without dragging still works like Godot's own.
-- **Grid**: `[` / `]` changes the grid size (0.125–8 m) for every tool; the toggle next to the size in the top bar turns snapping off (holding `Ctrl` while dragging inverts it).
+- **Face arrows**: a selected box, cylinder or stairs shows an arrow on every face that points toward you. Drag one to push or pull that face; the opposite face stays put and the face lands on the grid. One undo step per drag.
+- **Typed sizes**: the width, height and depth labels of a selected shape are clickable. Click one, type a size (`2.5`, `2,5` and `2.5 m` all work) and press `Enter`; the bottom stays where it is.
+- **Whole tree**: a click selects the primitive under the cursor; a double-click selects the whole CSG tree it belongs to.
+- **Operations**: the palette's union, subtraction and intersection buttons change the selected shapes and show which operation they have. There is no hidden "current operation": new shapes are always unions.
+- **Grid**: `[` / `]` changes the grid size (0.125–8 m) for every tool; the toggle next to the size in the toolbar turns snapping off (holding `Ctrl` while dragging inverts it).
 - **Keyboard**: arrow keys move the selection one grid step along the axis closest to the view, `Page Up` / `Page Down` move it vertically (`Shift`: a quarter step), `,` / `.` rotate by 15° (`Shift`: 90°), and `End` drops it onto the surface below.
-- **Duplicate along an axis**: press `Ctrl + Shift + D` and move the mouse along X, Y or Z to repeat the selection, using its own size as the step. The wheel adds a gap, `X` / `Y` / `Z` lock the axis, and a click creates the copies.
-- **Snap Selection to Grid** (top bar "⋯" menu) puts every face of axis-aligned boxes on a grid line.
-
-### Pie menu and sidebar
-The pie menu keeps Union, Intersection and Subtraction where they always were, with Draw, Openings and More in between. The sidebar on the left of the viewport creates any primitive with one click, using the boolean mode selected below it.
-
-![Pie Menu Demo](DocsImages/PieMenu.webp)
-
-![Sidebar Demo](DocsImages/Sidebar.webp)
+- **Duplicate along an axis**: press `Ctrl + Shift + D` and move the mouse along X, Y or Z to repeat the selection, using its own size as the step. `+` / `-` add or remove a gap, `X` / `Y` / `Z` lock the axis, and a click creates the copies.
+- **Snap Selection to Grid** (toolbar "⋯" menu, or **More › Snap to Grid** in the pie menu) puts every face of axis-aligned boxes on a grid line.
+- **⋯ › Shortcuts** lists every key with your current bindings.
 
 ### Grid materials
-The sidebar has three world-aligned grid materials (**Light**, **Dark**, **Orange Accent**), an untextured mode and a slot for your own material. The grid never stretches, so 1 m squares stay 1 m whatever you resize. Select shapes and click **Apply Material to Selected** to assign the active preset.
+The palette has three world-aligned grid materials (**Light**, **Dark**, **Orange Accent**), an untextured mode and a slot for your own material. The grid never stretches, so 1 m squares stay 1 m whatever you resize. The highlighted swatch is the material new shapes get; select shapes and click **Apply Material to Selected** to give it to them.
 
 ![Material Presets & Quick Apply Demo](DocsImages/MaterialPresets.webp)
 
@@ -71,11 +78,11 @@ The **Blockout** dock tab lists only CSG trees and frozen blockout, with show/hi
 
 ### Know the size of everything
 - Selected shapes show **width × height × depth** in meters (toggle in the "⋯" menu).
-- **Player Reference** (top bar or **More ▸**) places a `CSGPlayerReference3D` next to your blockout: the character capsule, crouch and eye height, the height you can jump onto, the sprint-jump arc and the steepest walkable slope. It's editor-only and disappears when the game runs.
+- **Player Reference** (palette or **More ›**) places a `CSGPlayerReference3D` next to your blockout: the character capsule, crouch and eye height, the height you can jump onto, the sprint-jump arc and the steepest walkable slope. It's editor-only and disappears when the game runs.
 - The values come from Project Settings under `addons/csg_blockout/player_metrics` (character height, jump height, sprint-jump distance, capsule radius, crouch height, max slope, walk speed). A reference or a ruler can override them for itself.
 
 ### Check the level
-- **Check** (the ⚠ button in the top bar) samples every walkable surface and flags slopes steeper than the walkable angle and ceilings below standing (orange) or crouch (red) height. Problems are highlighted in the viewport and listed in the **Checks** tab of the Blockout dock; click one to select the shape to fix.
+- **Check** (in the toolbar) samples every walkable surface and flags slopes steeper than the walkable angle and ceilings below standing (orange) or crouch (red) height. Problems are highlighted in the viewport and listed in the **Checks** tab of the Blockout dock. The status line at the top of the viewport names the first problem and selects its shape; **Next ›** frames the next one.
 - **Jump check**: select two objects and use "⋯ > Check Jump Between Two Selected". A ruler is placed between their closest top edges and tells you whether the gap is jumpable.
 - **Ruler** (`CSGRuler3D`): drag its two handles to measure any distance, horizontal span or height difference.
 
@@ -83,7 +90,7 @@ The **Blockout** dock tab lists only CSG trees and frozen blockout, with show/hi
 "⋯ > Tag As" marks the selection as **wall**, **floor**, **hazard** or **interactive**. Tagged shapes get a color-coded grid material and a `csg_blockout_tag` metadata your game can read. "⋯ > Export Legend (SVG)…" writes a legend for design documents.
 
 ### Play it
-**▶ Play From Here** in the top bar runs the current scene with a first-person test character at the point in the middle of the viewport, facing the way the camera faces. **More ▸ Play From Here** in the pie menu uses the point under the menu instead, and you can bind a shortcut for "at the cursor" in Editor Settings.
+**Play** in the toolbar runs the current scene with a first-person test character at the point in the middle of the viewport, facing the way the camera faces. **Play** in the pie menu uses the point under the menu instead, and you can bind a shortcut for "at the cursor" in Editor Settings.
 
 Controls: `WASD` move, `Space` jump, `Shift` sprint, `Ctrl` crouch, `R` back to the start, `Esc` frees the mouse, `F8` stops the game. The character jumps exactly `single_jump_height` and a sprint jump covers `sprint_jump_distance`: the same numbers the ruler and the level check use. Scenes without lights get a default sun and sky. Nothing is added to your input map or autoloads.
 
@@ -94,7 +101,7 @@ Controls: `WASD` move, `Space` jump, `Shift` sprint, `Ctrl` crouch, `R` back to 
 Live CSG is great while you edit, but every CSG tree computes its booleans when the scene loads: a 400-primitive level starts about 4× slower than the same level as meshes. **Freezing** turns finished parts into plain meshes without losing the CSG.
 
 ### Freeze and unfreeze
-1. Select a CSG tree (any shape inside it is enough) and click **Freeze** in the top bar (or **More ▸ Freeze**).
+1. Select a CSG tree (any shape inside it is enough) and click **Freeze** in the toolbar (or **More › Freeze** in the pie menu).
 2. The tree is replaced in place by a `MeshInstance3D` with the same name and transform, plus a `StaticBody3D` collision when the CSG used collision. The original CSG is stored inside the frozen node. Lights, markers and other non-CSG nodes that lived inside the tree move onto the frozen node.
 3. To change it, select the frozen node and click the same button, now **Unfreeze**. The exact CSG comes back, and the non-CSG nodes return to where they were.
 
