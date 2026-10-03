@@ -44,7 +44,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The pie menu no longer opens when you press `Shift + A` while holding the right mouse button to fly the viewport camera. The key press is passed on to the editor and other plugins instead of being swallowed. ([#4](https://github.com/qwqzhanqwq/Godot-CSG-Blockout/pull/4), thanks [@SuzukaDev](https://github.com/SuzukaDev))
 
 ### Documentation
-- README rewritten around the plugin's purpose: level prototyping with native, non-destructive CSG nodes. Stairs and the level ruler are now listed; Repeater/Spreader moved to a "procedural extras" section.
+- README rewritten around the plugin's purpose and the new workflow (draw, cut, measure, play, freeze), with a shortcut table and a performance summary. Repeater/Spreader moved to a "procedural extras" section.
+- The tutorial now walks from an empty scene to a playable, frozen level; its old "bake to mesh and delete the CSG" section is replaced by reversible bake, and MeshLibrary and glTF export are covered. The architecture document now describes the module layout, viewport input routing, undo, how freezing stores the CSG, raycasting and the level check, Play From Here, and every setting. The stairs axes are corrected there: the steps run along +X and the width extrudes along -Z.
 - Added a contributing guide (`CONTRIBUTING.md`, `CONTRIBUTING_CN.md`), issue templates, a pull request template, and this changelog.
 - Added `BENCHMARKS.md` / `BENCHMARKS_CN.md`: edit latency, freeze time and in-game startup and frame time for levels of 24–400 primitives, with a benchmark you can run yourself (`benchmarks/run_benchmarks.gd`; left out of Asset Library downloads).
 

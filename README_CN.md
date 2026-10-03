@@ -20,7 +20,7 @@
 
   <p>
     <strong>做关卡原型，不是做建模。</strong><br />
-    在 Godot 4.6+ 里用原生 CSG 节点搭白盒：没有私有格式，随时可改，随时可退。
+    在 Godot 4.6+ 里用原生 CSG 节点搭白盒：在视口里画出房间，对照角色尺寸检查，直接试玩，再冻结成网格，而且随时能变回 CSG。
   </p>
 
   <!-- 首屏演示位：15 秒动图，从空场景到一个带门洞的房间。录好后放在这里，例如
@@ -33,84 +33,124 @@
 
 笔刷式关卡编辑器把几何体存在自己的数据格式里。CSG_Blockout 不这样做：你搭的每一块都是场景树里普通的 Godot CSG 节点，全程非破坏性编辑。墙随时能挪，门洞随时能改，挖掉的部分随时能删，不会有什么东西在背后被悄悄塌缩成网格。
 
+房间定稿后可以**冻结**：它变成带碰撞的普通 `MeshInstance3D`，加载和运行都和普通网格一样，原来的 CSG 则保存在节点里。**解冻**会把那份 CSG 原样还回来，所以"烘焙了"不再等于"定死了"。
+
 这也意味着你随时可以不用这个插件：
 
-- 饼菜单和侧边栏创建的**基础图元**就是原生的 `CSGBox3D`、`CSGCylinder3D` 等节点，禁用或删除插件都不受影响。
+- **基础图元**就是原生的 `CSGBox3D`、`CSGCylinder3D` 等节点，禁用或删除插件都不受影响。
+- **冻结的白盒**是普通的 `MeshInstance3D` + `StaticBody3D`，只有解冻需要插件。
 - **楼梯**（`CSGStairs3D`）会退化为形状不变的原生 `CSGPolygon3D`。
 - **Repeater / Spreader** 的实例是实时预览，先点一下 **烘焙 (Bake)** 就会变成普通场景节点。
-- **网格材质**放在插件目录里：仅禁用插件时保留，删除插件目录则会丢失。
+- **网格材质**存放在插件目录里：只禁用插件不受影响，删除插件目录则会丢失。
 
 ---
 
-## 安装指南
+## 安装
 
-### 途径 1：Godot AssetLib 官方资产库（推荐）
+### 方式一：Godot 资产库（推荐）
 1. 在 Godot（4.6 及以上）编辑器顶部点击 **AssetLib (资产库)** 选项卡。
-2. 搜索 `CSG Blockout`，点击下载并安装到项目中。
-3. 也可通过网页版资产库直达：[Godot AssetLib - CSG_Blockout](https://store.godotengine.org/asset/qwqzhanqwq/csg-blockout/)。
+2. 搜索 `CSG Blockout`，下载并安装到你的项目中。
+3. 也可以在网页上直接查看：[Godot 资产库 - CSG_Blockout](https://store.godotengine.org/asset/qwqzhanqwq/csg-blockout/)。
 
-### 途径 2：GitHub Releases 发布包
-1. 前往项目的 [Releases 页面](https://github.com/qwqzhanqwq/Godot-CSG-Blockout/releases) 下载最新的 `.zip` 归档文件。
-2. 解压后将 `addons/csg_blockout` 文件夹复制到你的 Godot 项目根目录下的 `addons/` 目录中。
+### 方式二：GitHub Releases (.zip)
+1. 从 [Releases 页面](https://github.com/qwqzhanqwq/Godot-CSG-Blockout/releases) 下载最新版 `.zip` 压缩包。
+2. 解压后将 `addons/csg_blockout` 文件夹复制到你项目的 `addons/` 目录下。
 
-### 途径 3：Git 源码克隆
-在你的 Godot 项目根目录下执行以下命令：
+### 方式三：Git 克隆
+直接克隆到项目的 `addons/` 目录：
 ```bash
 git clone https://github.com/qwqzhanqwq/Godot-CSG-Blockout.git addons/csg_blockout
 ```
 
 ### 启用插件
-打开 Godot 编辑器，依次点击 **项目 (Project) -> 项目设置 (Project Settings) -> 插件 (Plugins)**，找到 **CSG_Blockout** 并勾选 **启用 (Enable)**。
+在 Godot 中打开 **项目 -> 项目设置 -> 插件**，找到 **CSG_Blockout**，勾选 **启用**。
 
 ---
 
 ## 快速上手
 
-1. **在光标处创建**：在 3D 视口按 `Shift + A`，在光标处呼出饼菜单，朝目标方向一甩即可创建形状或切换布尔模式（并集 / 交集 / 差集）。
-2. **或者点侧边栏**：视口左侧边栏一键创建形状、楼梯和标尺。选中 `CSGCombiner3D` 时新节点放进它内部，选中某个形状时新节点紧挨着它放。
-3. **挖一个门洞**：模式切到差集，往墙里放一个盒子。
-4. **让尺度一眼可读**：选一种网格材质（1 米一格，怎么缩放都不拉伸），选中形状后点 **“应用材质到选中节点”**。
-5. **拿角色参数验一下**：在两个平台之间拉一把标尺，按你设定的角色参数判断这段间隙跳不跳得过去。
+1. **画一个房间**：在 3D 视口按 `Shift + A`，选 **绘制 ▸ 房间**（或点顶栏的绘制按钮）。在地面上拖出地板轮廓，松开后上移鼠标定高度，点击确认。
+2. **挖门洞**：选 **开洞 ▸ 门**，点一下墙。洞口会对齐墙面、贯穿整个墙厚并落到地面，滚轮调宽度。
+3. **调整形状**：`Shift` 拖动面可以推拉，方向键按一个栅格步长微调，`[` / `]` 切换栅格尺寸。
+4. **对照尺度**：选中的形状会标出宽 × 高 × 深。加一个 **角色参照** 能看到角色胶囊体、可跳上的高度和冲刺跳跃弧线；点顶栏的 **检查**（⚠）会标出过陡的坡和过低的天花板。
+5. **试玩**：点 **▶ 从这里试玩**，在你看着的位置放一个第一人称测试小人。它能跳多高、跳多远，都按你的角色参数来。
+6. **冻结**：房间定稿后点 **冻结**。想改的时候随时解冻。
 
-> 完整图文教程与性能优化流程，请查阅 [快速上手与高级工作流教程 (TUTORIAL_CN.md)](TUTORIAL_CN.md)。
+> 完整流程（包括冻结、MeshLibrary/glTF 导出与程序化工具）见 [教程 (TUTORIAL_CN.md)](TUTORIAL_CN.md)。
 
 ---
 
 ## 功能
 
-### 白盒搭建
-- **光标处饼菜单**（`Shift + A`）：不离开视口就能创建形状、切换布尔模式。按住右键飞行浏览时不会误触。
-- **视口侧边栏**：形状、楼梯、标尺都是一键创建。新节点自动放在你本来就会手动放的位置：选中组合器就放进去，选中形状就放在它旁边。没有选中 CSG 节点时侧边栏自动隐藏。
-- **楼梯与坡道**（`CSGStairs3D`）：设定总高、进深、宽度和阶数；一键切成平滑坡道来测移动手感。踏步高宽超出舒适范围时会提示。
-- **所有操作都能撤销**：创建、切换模式、赋材质、烘焙 Repeater/Spreader 实例，统统 `Ctrl + Z` / `Ctrl + Y`。
+### 搭建
+- **视口里直接画**：在任意表面或地面上拖出底面，再定高度。差集模式下同一个工具就是切割，切割体会自动放进被切物体所在的组合器。**房间**变体会生成一个空心外壳，墙厚可设。
+- **门窗预设**：点墙即可挖出门洞，或按窗台高度挖出窗洞，可选带门框。尺寸在项目设置里。
+- **面推拉**：`Shift` 拖动方块、圆柱或楼梯的某个面，沿法线推移，对面保持不动。
+- **栅格与吸附**：所有工具共用一套栅格（0.125–8 m），键盘微调、15° 步进旋转、落到下方表面、沿轴复制（`Ctrl + Shift + D`）。
+- **饼菜单与侧边栏**：`Shift + A` 在光标处打开饼菜单，切换图元、布尔模式、绘制工具与开洞；视口侧边栏一键创建图元。
+- **楼梯与坡道**（`CSGStairs3D`）：设置总高、进深、宽度和台阶数，也可以切换成平滑坡道。台阶尺寸不舒适时会提示。
+- **永不拉伸的网格材质**：世界对齐的 1 m 网格，浅色、深色、橙色三种，可批量赋给选中物体。
 
-### 尺度与度量
-- **永不拉伸的网格材质**：世界对齐的 1 米网格，浅色、深色、橙色强调三种，外加无材质模式和自定义材质槽，可批量赋予选中节点。
-- **关卡标尺**（`CSGRuler3D`）：拖动两个端点，直接读出直线距离、水平跨度和高差；并按角色身高、单跳高度、冲刺跳距离判断能否到达。这些参数在项目设置里统一配置，也可以单把标尺覆盖。顶部工具栏可一键显隐所有标尺。
+### 度量与试玩
+- **尺寸标注**：选中的形状显示宽 × 高 × 深（米）。
+- **角色参照**（`CSGPlayerReference3D`）：胶囊体、蹲伏与视线高度、可跳上的高度、冲刺跳跃弧线、最大可行走坡度。仅在编辑器中存在。
+- **关卡检查**：标出超过可行走坡度的坡面，以及低于站立或蹲伏高度的天花板，在视口里高亮，并列在大纲面板的"检查"页签里。
+- **跳跃检查与标尺**：选中两个物体判断能否跳过去，或者在任意两点间拉一把标尺。
+- **语义标签**：把形状标记为墙、地面、危险区或可交互，会配上对应颜色的网格材质和游戏可读取的元数据，还能导出 SVG 图例放进设计文档。
+- **从这里试玩**：以视口中心或光标处为起点运行场景，带一个第一人称测试小人（WASD、跳跃、冲刺、蹲伏）。不改输入映射，不加自动加载。
 
-### 程序化附加工具
-- **Repeater**（`CSGRepeater3D`）：按网格、环形、螺旋或噪声分布排布副本，可随机旋转、缩放和抖动位置。
-- **Spreader**（`CSGSpreader3D`）：在任意 `Shape3D` 范围内撒最多 200 个互不重叠的副本，调参数时预览实时刷新。
-- 点顶部工具栏的 **烘焙 (Bake)**，把预览副本变成普通场景节点。
+### 组织
+- **白盒大纲面板**（停靠面板）：只列出 CSG 树和冻结的白盒，带运算图标、显示/隐藏、隔离（solo）、锁定、筛选、编组/解组，以及 `Wall_Corridor_01` 这样的语义命名。
+
+### 冻结与发布
+- **可逆烘焙**：一次撤销就把 CSG 树冻结成带碰撞的网格，也能解冻回可编辑的 CSG。你给冻结节点加的脚本、分组和子节点，在冻结/解冻往返中都会保留。
+- **烘焙选项**：碰撞（无、三角网格、逐图元原生形状、凸包）、光照贴图 UV2、遮挡体与 LOD，每个节点单独设置，支持原地**重新烘焙**。
+- **运行时零开销**：导出时去掉保存的 CSG 和编辑器专用的辅助节点，冻结的白盒以普通网格发布。
+- **导出到 MeshLibrary** 供 GridMap 使用，带碰撞和预览图；再次导出会就地更新已有的库。
+- **glTF 往返**：把冻结的白盒导出成 `.glb`，在 Blender 里精修后换回来，Godot 材质按名字自动对应回去。
+- **非流形预警**（`CSGMesh3D`）：Godot 的 CSG 遇到不闭合的网格会静默出错，Inspector 会指出问题边。
+
+### 程序化工具
+- **Repeater**（`CSGRepeater3D`）：按网格、环形、螺旋或噪声排列副本，可随机旋转、缩放和抖动。
+- **Spreader**（`CSGSpreader3D`）：在任意 `Shape3D` 内不重叠地撒放最多 200 个副本。
 
 ### 其他
-- 界面支持 7 种语言：中文、英语、日语、韩语、西班牙语、葡萄牙语、俄语。默认跟随编辑器语言，也可单独指定。
-
-算法推导、设计模式与完整属性参考见 [ARCHITECTURE_CN.md](ARCHITECTURE_CN.md)。
+- 所有场景修改都能用 `Ctrl + Z` / `Ctrl + Y` 撤销重做，包括冻结和解冻。
+- 界面支持 7 种语言：英语、简体中文、日语、韩语、西班牙语、葡萄牙语、俄语。
 
 ---
 
-## 路线图
+## 快捷键
 
-方向是 **画 → 跑 → 改**，全程不离开节点树。接下来做：视口拖拽创建、统一的栅格与吸附、切割与门窗工具。再往后：可逆烘焙（把 CSG 树冻结成网格，也能一键解冻回可编辑 CSG）、视口内的关卡设计度量层，以及带测试角色的"从这里试玩"。
+所有视口快捷键都可以在 **编辑器设置 > 快捷键 > csg_blockout** 里改绑。
 
-版本更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+| 操作 | 默认 |
+| :--- | :--- |
+| 饼菜单 | `Shift + A`（修饰键可在项目设置里改） |
+| 栅格变小 / 变大 | `[` / `]` |
+| 按一个栅格步长微调 | 方向键（水平，相对视角）、`Page Up` / `Page Down`（竖直）；按住 `Shift` 为四分之一步长 |
+| 旋转 15°（`Shift`：90°） | `,` / `.` |
+| 落到下方表面 | `End` |
+| 沿轴复制 | `Ctrl + Shift + D` |
+| 推拉面 | `Shift` + 拖动 |
+| 从光标处试玩 | 默认不占键（可自行绑定） |
+| 取消工具 | `Esc` 或右键 |
+
+---
+
+## 性能
+
+- **大关卡按房间拆成多棵 CSG 树。** Godot 只重建发生变化的那棵树：每个房间一棵树时，不管关卡多大，一次编辑约 2 ms；400 个图元放在同一棵树里则约 30 ms。
+- **冻结几乎瞬间完成**：400 个图元不到 0.1 秒。
+- **实时 CSG 每帧不额外花钱，只在加载时花**：400 个图元的关卡冻结后启动快约 4 倍。
+
+具体数字、测量方法和可以自己跑的基准脚本见 [BENCHMARKS_CN.md](BENCHMARKS_CN.md)。
 
 ---
 
 ## 参与贡献
 
-欢迎提交问题反馈、功能建议和 Pull Request，动手前请先阅读 [贡献指南 (CONTRIBUTING_CN.md)](CONTRIBUTING_CN.md)。
+欢迎提交问题反馈、功能建议和 Pull Request，请先阅读 [贡献指南 (CONTRIBUTING_CN.md)](CONTRIBUTING_CN.md)。版本变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
@@ -121,36 +161,41 @@ git clone https://github.com/qwqzhanqwq/Godot-CSG-Blockout.git addons/csg_blocko
 | | 原版 CSG Toolkit | CSG_Blockout |
 | :--- | :--- | :--- |
 | **引擎** | 早期 Godot 4.x | Godot 4.6+，GDScript 全静态类型 |
-| **创建形状** | 视口侧边栏 | 光标处饼菜单 + 侧边栏 |
-| **关卡设计辅助** | — | 参数化楼梯/坡道、带跳跃可达性判定的关卡标尺 |
-| **材质** | 默认材质 | 世界对齐网格材质，批量赋予 |
-| **程序化排布** | — | Repeater 与防重叠 Spreader，可烘焙为普通节点 |
-| **撤销** | 基础支持 | 插件的每个操作都可撤销 |
-| **语言** | 英语 | 7 种语言 |
+| **创建图元** | 视口侧边栏 | 视口里直接画、光标处饼菜单、侧边栏 |
+| **编辑** | Godot 自带 gizmo | 面推拉、统一栅格与吸附、键盘微调、沿轴复制 |
+| **关卡设计辅助** | — | 门窗预设、楼梯、尺寸标注、角色参照、关卡检查、跳跃检查、标尺、从这里试玩 |
+| **烘焙** | — | 可逆冻结，支持碰撞/UV2/遮挡体/LOD 选项；导出 MeshLibrary 与 glTF |
+| **组织** | — | 白盒大纲面板，支持隔离、锁定与语义命名 |
+| **材质** | 默认材质 | 世界对齐网格材质、语义标签配色 |
+| **程序化布局** | — | Repeater 与不重叠的 Spreader，可烘焙为普通节点 |
+| **撤销** | 基础 | 所有场景修改都可撤销，包括冻结 |
+| **语言** | 英文 | 7 种语言 |
 
 ---
 
-## 文档导航
+## 文档索引
 
 ### 简体中文
-- [主说明文档 (README_CN.md)](README_CN.md)：定位、安装与功能。
-- [快速上手与高级工作流教程 (TUTORIAL_CN.md)](TUTORIAL_CN.md)：手把手教学、动图演示与白盒烘焙方案。
-- [架构设计与技术内幕 (ARCHITECTURE_CN.md)](ARCHITECTURE_CN.md)：3D 空间哈希推导、架构解析与 API 字典。
-- [更新日志 (CHANGELOG.md)](CHANGELOG.md)：每个版本改了什么（英文）。
+- [中文主说明文档 (README_CN.md)](README_CN.md)：定位、安装与功能。
+- [教程 (TUTORIAL_CN.md)](TUTORIAL_CN.md)：从空场景到可试玩、已冻结的关卡，以及导出与程序化工具。
+- [架构设计与技术内幕 (ARCHITECTURE_CN.md)](ARCHITECTURE_CN.md)：模块结构、工具与冻结的实现、属性与设置参考。
+- [性能基准 (BENCHMARKS_CN.md)](BENCHMARKS_CN.md)：编辑、冻结与运行时的实测数据和可复现的基准脚本。
 - [贡献指南 (CONTRIBUTING_CN.md)](CONTRIBUTING_CN.md)：如何反馈问题与提交 PR。
 
 ### English
 - [Main Documentation (README.md)](README.md): Overview, installation, and features.
-- [Quick Start & Advanced Workflow Tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md): Step-by-step guide, demos, and the CSG-to-mesh baking workflow.
-- [Architecture & Technical Internals (ARCHITECTURE.md)](ARCHITECTURE.md): Spatial hash algorithm, design patterns, and API reference.
+- [Tutorial (TUTORIAL_EN.md)](TUTORIAL_EN.md): From an empty scene to a frozen, playable level, plus the export and procedural tools.
+- [Architecture & Technical Internals (ARCHITECTURE.md)](ARCHITECTURE.md): Module layout, how the tools and freezing work, and the property and settings reference.
+- [Benchmarks (BENCHMARKS.md)](BENCHMARKS.md): Editing, freezing and runtime numbers, with a reproducible benchmark.
+- [Changelog (CHANGELOG.md)](CHANGELOG.md): What changed in each release.
 - [Contributing Guide (CONTRIBUTING.md)](CONTRIBUTING.md): How to report bugs and submit pull requests.
 
 ---
 
-## 致谢与开源协议
+## 致谢与协议
 
-- **原始概念与界面原型灵感**：[LuckyTepot](https://github.com/LuckyTepot) (CSG Toolkit, Copyright (c) 2023).
-- **架构重构、3D 轮盘、空间哈希优化、阵列/散布系统、楼梯与标尺、GDScript 2.0 重写**：[qwqzhanqwq](https://github.com/qwqzhanqwq) (Copyright (c) 2026).
-- **贡献者**：[SuzukaDev](https://github.com/SuzukaDev)（修复饼菜单在飞行浏览时误触）。
+- **原版概念与布局设计**：[LuckyTepot](https://github.com/LuckyTepot)（CSG Toolkit，Copyright (c) 2023）。
+- **架构重构、3D 饼菜单、关卡原型工具、可逆烘焙、空间哈希网格、阵列/散布系统、楼梯与标尺、GDScript 2.0 重写**：[qwqzhanqwq](https://github.com/qwqzhanqwq)（Copyright (c) 2026）。
+- **贡献者**：[SuzukaDev](https://github.com/SuzukaDev)（修复饼菜单与飞行导航冲突）。
 
-本项目基于 [MIT License](LICENSE) 开源发布。
+基于 [MIT 协议](LICENSE) 开源。
