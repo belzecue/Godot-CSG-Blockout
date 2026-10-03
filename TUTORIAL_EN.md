@@ -19,7 +19,7 @@
 - **Intersection**: keeps only the volume where shapes overlap.
 - **Subtraction**: carves one shape out of another, which is how doors, windows and tunnels are made.
 
-![CSG Subtraction Demo](DocsImages/Subtraction.webp)
+![A ball overlapping a block, switched between union, subtraction and intersection from the tool palette](DocsImages/Subtraction.webp)
 
 In Godot, every CSG node inside a `CSGCombiner3D` (or any CSG parent) contributes to one combined result. The topmost CSG node of such a group is its **root**: Godot computes one mesh and one collision shape per root. Everything stays editable: there's no point where your blockout is "converted" and can't be changed anymore.
 

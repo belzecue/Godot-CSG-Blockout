@@ -23,8 +23,7 @@
     Block out levels in Godot 4.6+ with native CSG nodes: draw rooms in the viewport, check them against your character, play them, and freeze them into meshes you can always turn back into CSG.
   </p>
 
-  <!-- HERO DEMO: 15-second clip, empty scene → a room with a doorway. Put it here once recorded, e.g.
-  <img src="DocsImages/Hero.webp" alt="From an empty scene to a room with a doorway in 15 seconds" width="800" /> -->
+  <img src="DocsImages/Hero.webp" alt="From an empty scene: draw a room, cut a door, press Play and walk out through that door" width="800" />
 </div>
 
 ---
