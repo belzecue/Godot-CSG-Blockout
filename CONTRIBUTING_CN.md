@@ -35,7 +35,7 @@ CSG_Blockout 是**关卡原型**工具，不是建模工具。它搭出来的一
 
 ## 开发环境
 
-1. 新建（或打开）一个 Godot **4.7+** 项目。
+1. 新建（或打开）一个 Godot **4.6+** 项目。
 2. 把你的 fork 克隆到项目的 addons 目录：
    ```bash
    git clone https://github.com/<your-name>/Godot-CSG-Blockout.git addons/csg_blockout
@@ -48,7 +48,7 @@ CSG_Blockout 是**关卡原型**工具，不是建模工具。它搭出来的一
 
 ## 代码规范
 
-代码基于 **Godot 4.7 / GDScript 2.0**。请遵守以下规则，让改动和插件其余部分保持一致：
+代码支持 **Godot 4.6 及以上**（在 4.7 上开发），使用 **GDScript 2.0**；不同引擎版本间有差异的调用统一走 `scripts/core/csg_compat.gd`。请遵守以下规则，让改动和插件其余部分保持一致：
 
 **类型与语法**
 - 全部静态类型，不允许无类型变量。容器必须带类型：`Array[Type]`、`Dictionary[KeyType, ValueType]`（混合类型的值显式写 `Variant`）。

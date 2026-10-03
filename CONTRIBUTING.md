@@ -35,7 +35,7 @@ Use the **Bug report** issue template. The most useful reports include:
 
 ## Development setup
 
-1. Create (or open) a Godot **4.7+** project.
+1. Create (or open) a Godot **4.6+** project.
 2. Clone your fork into the project's addons folder:
    ```bash
    git clone https://github.com/<your-name>/Godot-CSG-Blockout.git addons/csg_blockout
@@ -48,7 +48,7 @@ Use the **Bug report** issue template. The most useful reports include:
 
 ## Code conventions
 
-The codebase targets **Godot 4.7 / GDScript 2.0**. Please follow these rules so changes stay consistent with the rest of the plugin:
+The codebase supports **Godot 4.6 and later** (it is developed on 4.7) with **GDScript 2.0**; calls that differ between engine versions go through `scripts/core/csg_compat.gd`. Please follow these rules so changes stay consistent with the rest of the plugin:
 
 **Typing and syntax**
 - Static typing everywhere. No untyped variables. Containers are typed: `Array[Type]`, `Dictionary[KeyType, ValueType]` (use `Variant` explicitly for mixed values).

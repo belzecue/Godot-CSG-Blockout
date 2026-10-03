@@ -1,25 +1,68 @@
 @tool
-class_name CSGSideBlockoutBar extends Control
+class_name CSGSideBlockoutBar extends MarginContainer
+## Tool palette on the left of the 3D viewport, always visible. Top to bottom:
+## the drawing tools with their names (one use per click, a double-click keeps the
+## tool on), shapes (created next to the selection, or in the middle of the view),
+## the boolean operation of the selected shapes, materials, and level helpers.
 
 signal request_create_node(node_type: String)
-signal stairs_requested()
-signal ruler_requested()
+## A tool or action button was pressed; the plugin dispatches it (same ids as the
+## pie menu and the top bar).
+signal action_requested(action_id: StringName)
 
 var config: CsgBlockoutConfig:
 	get: return CsgBlockoutConfig.get_config()
 
-const BASE_BAR_MIN_WIDTH: float = 52.0
-const BASE_BTN_SIZE: Vector2 = Vector2(42.0, 42.0)
-const BASE_MATERIAL_BTN_SIZE: Vector2 = Vector2(42.0, 36.0)
-const BASE_ICON_MAX_WIDTH: int = 24
-const BASE_MATERIAL_ICON_MAX_WIDTH: int = 22
-const BASE_CONTAINER_SEPARATION: int = 12
-const BASE_MARGIN_VERTICAL: int = 8
-const BASE_LANG_BTN_SIZE: Vector2 = Vector2(36.0, 22.0)
-const BASE_LANG_FONT_SIZE: int = 11
+const BASE_WIDTH: float = 72.0
+const BASE_TOOL_HEIGHT: float = 44.0
+const BASE_CELL_HEIGHT: float = 28.0
+const BASE_ICON: float = 18.0
+const BASE_FONT_SIZE: float = 11.0
+const BASE_SEPARATION: float = 2.0
+const BASE_MARGIN: float = 6.0
 
-var button_tweens: Dictionary = {}
-var visibility_tween: Tween
+## [action id, label key, tooltip key, icon]
+const TOOLS: Array = [
+	[&"draw_box", "TOOL_BOX", "DRAW_BOX_TOOLTIP", "box.svg"],
+	[&"draw_room", "TOOL_ROOM", "DRAW_ROOM_TOOLTIP", "room.svg"],
+	[&"draw_cut", "TOOL_CUT", "DRAW_CUT_TOOLTIP", "cut.svg"],
+	[&"opening_door", "DOOR", "OPENING_DOOR_TOOLTIP", "door.svg"],
+	[&"opening_window", "WINDOW", "OPENING_WINDOW_TOOLTIP", "window.svg"],
+]
+## [node name, class, label key, icon]
+const SHAPES: Array = [
+	["Box", "CSGBox3D", "BOX", "box.svg"],
+	["Cylinder", "CSGCylinder3D", "CYLINDER", "cyliner.svg"],
+	["Sphere", "CSGSphere3D", "SPHERE", "sphere.svg"],
+	["Stairs", "CSGStairs3D", "STAIRS", "stairs.svg"],
+	["Torus", "CSGTorus3D", "TORUS", "torus.svg"],
+	["Polygon", "CSGPolygon3D", "POLYGON", "polygon.svg"],
+	["Mesh", "CSGMesh3D", "MESH", "mesh.svg"],
+]
+## [node name, operation, action id, tooltip key, icon]
+const OPERATIONS: Array = [
+	["Union", CSGShape3D.OPERATION_UNION, &"set_op_union", "OP_UNION_TOOLTIP", "op_union.svg"],
+	["Subtraction", CSGShape3D.OPERATION_SUBTRACTION, &"set_op_subtract", "OP_SUBTRACT_TOOLTIP", "op_subtract.svg"],
+	["Intersection", CSGShape3D.OPERATION_INTERSECTION, &"set_op_intersect", "OP_INTERSECT_TOOLTIP", "op_intersect.svg"],
+]
+## [node name, preset, tooltip key, icon]
+const MATERIALS: Array = [
+	["PresetLight", CsgBlockoutConfig.MaterialPreset.GRID_LIGHT, "GRID_LIGHT", "grid_light.svg"],
+	["PresetDark", CsgBlockoutConfig.MaterialPreset.GRID_DARK, "GRID_DARK", "grid_dark.svg"],
+	["PresetOrange", CsgBlockoutConfig.MaterialPreset.GRID_ORANGE, "GRID_ORANGE", "grid_orange.svg"],
+	["PresetNone", CsgBlockoutConfig.MaterialPreset.NONE, "MATERIAL_NONE", "material_none.svg"],
+]
+
+var _tool_buttons: Array[Button] = []
+var _op_buttons: Array[Button] = []
+var _material_buttons: Dictionary = {} # MaterialPreset -> Button
+var _picker: Button
+var _apply: Button
+var _material_group: ButtonGroup = ButtonGroup.new()
+var _sync_queued: bool = false
+
+func _init() -> void:
+	name = "CsgBlockoutPalette"
 
 func _enter_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -27,12 +70,17 @@ func _enter_tree() -> void:
 	if not is_in_group(&"csg_blockout_ui"):
 		add_to_group(&"csg_blockout_ui")
 	var sel: EditorSelection = EditorInterface.get_selection()
-	if sel and not sel.selection_changed.is_connected(_on_selection_changed):
-		sel.selection_changed.connect(_on_selection_changed)
-	var cfg := config
-	if cfg and not cfg.default_operation_changed.is_connected(_on_default_operation_changed):
-		cfg.default_operation_changed.connect(_on_default_operation_changed)
-	CsgBlockoutI18n.translate_node(self)
+	if not sel.selection_changed.is_connected(_queue_sync):
+		sel.selection_changed.connect(_queue_sync)
+	# Undo/redo can change the selection's operation without changing the selection.
+	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
+	if not ur.version_changed.is_connected(_queue_sync):
+		ur.version_changed.connect(_queue_sync)
+	if not ur.history_changed.is_connected(_queue_sync):
+		ur.history_changed.connect(_queue_sync)
+	if get_child_count() == 0:
+		_build()
+	_queue_sync()
 
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint():
@@ -40,458 +88,277 @@ func _exit_tree() -> void:
 	if is_in_group(&"csg_blockout_ui"):
 		remove_from_group(&"csg_blockout_ui")
 	var sel: EditorSelection = EditorInterface.get_selection()
-	if sel and sel.selection_changed.is_connected(_on_selection_changed):
-		sel.selection_changed.disconnect(_on_selection_changed)
-	var cfg := config
-	if cfg and cfg.default_operation_changed.is_connected(_on_default_operation_changed):
-		cfg.default_operation_changed.disconnect(_on_default_operation_changed)
+	if sel.selection_changed.is_connected(_queue_sync):
+		sel.selection_changed.disconnect(_queue_sync)
+	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
+	if ur.version_changed.is_connected(_queue_sync):
+		ur.version_changed.disconnect(_queue_sync)
+	if ur.history_changed.is_connected(_queue_sync):
+		ur.history_changed.disconnect(_queue_sync)
 
-func _on_default_operation_changed(_op: CSGShape3D.Operation) -> void:
-	_sync_operation_buttons()
+static func _scale() -> float:
+	return maxf(EditorInterface.get_editor_scale(), 0.1) if Engine.is_editor_hint() else 1.0
 
-func _on_selection_changed() -> void:
-	var auto_hide_enabled := config.auto_hide if config else true
-	if not auto_hide_enabled:
-		_fade_in()
-		return
-	var selection: Array[Node] = EditorInterface.get_selection().get_selected_nodes()
-	if selection.any(func(node: Node) -> bool: return node is CSGShape3D or node is CSGRuler3D):
-		_fade_in()
-	else:
-		_fade_out()
+static func _icon(file_name: String) -> Texture2D:
+	var path: String = CsgBlockoutConfig.plugin_path.path_join("res/icons").path_join(file_name)
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
-func _fade_in() -> void:
-	if visible and modulate.a >= 0.99: return
-	if visibility_tween and visibility_tween.is_valid():
-		visibility_tween.kill()
-	if not visible:
-		modulate.a = 0.0
-		show()
-	visibility_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	visibility_tween.tween_property(self, "modulate:a", 1.0, 0.2)
+func _build() -> void:
+	var s: float = _scale()
+	custom_minimum_size.x = round(BASE_WIDTH * s)
+	add_theme_constant_override(&"margin_top", int(round(BASE_MARGIN * s)))
+	add_theme_constant_override(&"margin_bottom", int(round(BASE_MARGIN * s)))
+	add_theme_constant_override(&"margin_left", int(round(2.0 * s)))
+	add_theme_constant_override(&"margin_right", int(round(2.0 * s)))
+	var scroll: ScrollContainer = ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
+	var column: VBoxContainer = VBoxContainer.new()
+	column.name = "Palette"
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override(&"separation", int(round(BASE_SEPARATION * s)))
+	scroll.add_child(column)
 
-func _fade_out() -> void:
-	if not visible: return
-	if visibility_tween and visibility_tween.is_valid():
-		visibility_tween.kill()
-	visibility_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	visibility_tween.tween_property(self, "modulate:a", 0.0, 0.15)
-	visibility_tween.tween_callback(self.hide)
+	for spec: Array in TOOLS:
+		column.add_child(_tool_button(spec, s))
+	column.add_child(HSeparator.new())
 
-func _apply_editor_scale() -> void:
-	var ed_scale: float = 1.0
-	if Engine.is_editor_hint():
-		ed_scale = EditorInterface.get_editor_scale()
-	ed_scale = maxf(ed_scale, 0.1)
-	
-	custom_minimum_size.x = round(BASE_BAR_MIN_WIDTH * ed_scale)
-	add_theme_constant_override("margin_top", int(round(BASE_MARGIN_VERTICAL * ed_scale)))
-	add_theme_constant_override("margin_bottom", int(round(BASE_MARGIN_VERTICAL * ed_scale)))
-	
-	var hbox: Container = find_child("HBoxContainer", true, false) as Container
-	if hbox:
-		hbox.add_theme_constant_override("separation", int(round(BASE_CONTAINER_SEPARATION * ed_scale)))
-		
-	var csg_box: Container = find_child("CSG", true, false) as Container
-	if csg_box:
-		for child in csg_box.get_children():
-			if child is Button:
-				child.custom_minimum_size = BASE_BTN_SIZE * ed_scale
-				child.add_theme_constant_override("icon_max_width", int(round(BASE_ICON_MAX_WIDTH * ed_scale)))
+	var shapes: GridContainer = _grid("ShapeGrid", s)
+	column.add_child(shapes)
+	for spec: Array in SHAPES:
+		var type_name: String = spec[1]
+		var btn: Button = _cell(spec[0], _icon(spec[3]), s, func() -> void: request_create_node.emit(type_name))
+		btn.set_meta("label_key", spec[2])
+		shapes.add_child(btn)
+	column.add_child(HSeparator.new())
 
-	var op_box: Container = find_child("Operation", true, false) as Container
-	if op_box:
-		for child in op_box.get_children():
-			if child is Button:
-				child.custom_minimum_size = BASE_BTN_SIZE * ed_scale
-				child.add_theme_constant_override("icon_max_width", int(round(BASE_ICON_MAX_WIDTH * ed_scale)))
+	var ops: GridContainer = _grid("OperationGrid", s)
+	column.add_child(ops)
+	for spec: Array in OPERATIONS:
+		var action_id: StringName = spec[2]
+		var btn: Button = _cell(spec[0], _icon(spec[4]), s, func() -> void: action_requested.emit(action_id))
+		btn.toggle_mode = true
+		btn.set_meta("operation", spec[1])
+		btn.set_meta("tooltip_key", spec[3])
+		ops.add_child(btn)
+		_op_buttons.append(btn)
+	column.add_child(HSeparator.new())
 
-	var mat_box: Container = find_child("Material", true, false) as Container
-	if mat_box:
-		for child in mat_box.get_children():
-			if child is Button:
-				child.custom_minimum_size = BASE_MATERIAL_BTN_SIZE * ed_scale
-				child.add_theme_constant_override("icon_max_width", int(round(BASE_MATERIAL_ICON_MAX_WIDTH * ed_scale)))
+	var materials: GridContainer = _grid("MaterialGrid", s)
+	column.add_child(materials)
+	for spec: Array in MATERIALS:
+		var preset: CsgBlockoutConfig.MaterialPreset = spec[1]
+		var btn: Button = _cell(spec[0], _icon(spec[3]), s, func() -> void: _set_preset(preset))
+		btn.toggle_mode = true
+		btn.button_group = _material_group
+		btn.set_meta("i18n_tooltip_key", spec[2])
+		materials.add_child(btn)
+		_material_buttons[preset] = btn
+	_picker = _cell("MaterialPicker", _icon("empty-material.svg"), s, _request_material)
+	_picker.toggle_mode = true
+	_picker.button_group = _material_group
+	_picker.set_meta("i18n_tooltip_key", "MATERIAL_CUSTOM")
+	materials.add_child(_picker)
+	_apply = _cell("ApplyToSelected", _icon("apply_material.svg"), s, _apply_to_selected)
+	materials.add_child(_apply)
+	column.add_child(HSeparator.new())
 
-	var tools_box: Container = find_child("Tools", true, false) as Container
-	if tools_box:
-		for child in tools_box.get_children():
-			if child is Button:
-				child.custom_minimum_size = BASE_BTN_SIZE * ed_scale
-				child.add_theme_constant_override("icon_max_width", int(round(BASE_ICON_MAX_WIDTH * ed_scale)))
-				
-	var lang_btn: OptionButton = find_child("LanguageToggle", true, false) as OptionButton
-	if lang_btn:
-		lang_btn.custom_minimum_size = BASE_LANG_BTN_SIZE * ed_scale
-		lang_btn.add_theme_font_size_override("font_size", int(round(BASE_LANG_FONT_SIZE * ed_scale)))
+	var helpers: GridContainer = _grid("HelperGrid", s)
+	column.add_child(helpers)
+	var ruler: Button = _cell("Ruler", _icon("ruler.svg"), s, func() -> void: action_requested.emit(&"add_ruler"))
+	ruler.set_meta("i18n_tooltip_key", "ADD_RULER_TOOLTIP")
+	helpers.add_child(ruler)
+	var player_ref: Button = _cell("Action_add_player_ref", CSGTopBlockoutBar.editor_icon(&"CharacterBody3D"), s, func() -> void: action_requested.emit(&"add_player_ref"))
+	player_ref.set_meta("i18n_tooltip_key", "PLAYER_REF_TOOLTIP")
+	helpers.add_child(player_ref)
 
-func _ready() -> void:
-	_apply_editor_scale()
+	_apply_styles(s)
+	_translate()
+	_sync_materials()
+
+## Clear at rest, a light tint on hover, the editor accent while on (a tool in use,
+## the selection's operation, the current material). Narrow side padding: the tool
+## names need the whole width in some languages.
+func _apply_styles(s: float) -> void:
+	var accent: Color = get_theme_color(&"accent_color", &"Editor") if has_theme_color(&"accent_color", &"Editor") else Color(0.44, 0.73, 0.98)
+	var font: Color = get_theme_color(&"font_color", &"Label") if has_theme_color(&"font_color", &"Label") else Color(0.88, 0.88, 0.88)
+	var normal: StyleBoxEmpty = StyleBoxEmpty.new()
+	var hover: StyleBoxFlat = _box(Color(font, 0.08), Color(0, 0, 0, 0), s)
+	var pressed: StyleBoxFlat = _box(Color(accent, 0.22), Color(accent, 0.9), s)
+	var hover_pressed: StyleBoxFlat = _box(Color(accent, 0.3), Color(accent, 1.0), s)
+	for box: StyleBox in [normal, hover, pressed, hover_pressed]:
+		box.content_margin_left = 2.0 * s
+		box.content_margin_right = 2.0 * s
+		box.content_margin_top = 3.0 * s
+		box.content_margin_bottom = 3.0 * s
+	for btn: Node in find_children("*", "Button", true, false):
+		var b: Button = btn as Button
+		b.flat = false
+		b.add_theme_stylebox_override(&"normal", normal)
+		b.add_theme_stylebox_override(&"disabled", normal)
+		b.add_theme_stylebox_override(&"focus", StyleBoxEmpty.new())
+		b.add_theme_stylebox_override(&"hover", hover)
+		b.add_theme_stylebox_override(&"pressed", pressed)
+		b.add_theme_stylebox_override(&"hover_pressed", hover_pressed)
+
+static func _box(bg: Color, border: Color, s: float) -> StyleBoxFlat:
+	var box: StyleBoxFlat = StyleBoxFlat.new()
+	box.bg_color = bg
+	box.border_color = border
+	box.set_border_width_all(maxi(1, int(round(1.0 * s))) if border.a > 0.0 else 0)
+	box.set_corner_radius_all(int(round(4.0 * s)))
+	return box
+
+## Tool button: icon above its name, toggled while the tool is on.
+func _tool_button(spec: Array, s: float) -> Button:
+	var btn: Button = Button.new()
+	var tool_id: StringName = spec[0]
+	btn.name = "Tool_" + String(tool_id)
+	btn.flat = true
+	btn.toggle_mode = true
+	# Keep keyboard focus in the viewport, so Esc and the tool keys keep working.
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.icon = _icon(spec[3])
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	btn.clip_text = true
+	btn.add_theme_constant_override(&"icon_max_width", int(round(BASE_ICON * s)))
+	btn.add_theme_font_size_override(&"font_size", int(round(BASE_FONT_SIZE * s)))
+	btn.custom_minimum_size = Vector2(0.0, round(BASE_TOOL_HEIGHT * s))
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.text = CsgBlockoutI18n.t(spec[1])
+	btn.set_meta("i18n_text_key", spec[1])
+	btn.set_meta("i18n_tooltip_key", spec[2])
+	btn.set_meta("tool_id", tool_id)
+	btn.toggled.connect(func(_on: bool) -> void: action_requested.emit(tool_id))
+	_tool_buttons.append(btn)
+	return btn
+
+func _grid(grid_name: String, s: float) -> GridContainer:
+	var grid: GridContainer = GridContainer.new()
+	grid.name = grid_name
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override(&"h_separation", int(round(2.0 * s)))
+	grid.add_theme_constant_override(&"v_separation", int(round(2.0 * s)))
+	return grid
+
+## Icon-only cell of a two-column grid.
+func _cell(cell_name: String, icon: Texture2D, s: float, on_pressed: Callable) -> Button:
+	var btn: Button = Button.new()
+	btn.name = cell_name
+	btn.flat = true
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.icon = icon
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.add_theme_constant_override(&"icon_max_width", int(round(BASE_ICON * s)))
+	btn.custom_minimum_size = Vector2(0.0, round(BASE_CELL_HEIGHT * s))
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.pressed.connect(on_pressed)
+	return btn
+
+## Texts and tooltips in the current language.
+func _translate() -> void:
 	CsgBlockoutI18n.translate_node(self)
-	
-	var lang_btn = find_child("LanguageToggle", true, false)
-	if lang_btn and lang_btn is OptionButton:
-		lang_btn.clear()
-		lang_btn.add_item("Auto", 0)
-		lang_btn.add_item("EN", 1)
-		lang_btn.add_item("中文", 2)
-		lang_btn.add_item("日本語", 3)
-		lang_btn.add_item("한국어", 4)
-		lang_btn.add_item("Español", 5)
-		lang_btn.add_item("Português", 6)
-		lang_btn.add_item("Русский", 7)
-		_update_language_toggle_text()
-		
-	_setup_button_animations(self)
-	_sync_preset_buttons()
-	_sync_operation_buttons()
+	var hint: String = CsgBlockoutI18n.t("SHAPE_BUTTON_HINT")
+	var shapes: Node = find_child("ShapeGrid", true, false)
+	if shapes != null:
+		for btn: Node in shapes.get_children():
+			(btn as Button).tooltip_text = "%s\n%s" % [CsgBlockoutI18n.t(btn.get_meta("label_key")), hint]
+	_sync_operations()
 
 func update_language() -> void:
-	CsgBlockoutI18n.translate_node(self)
-	_update_language_toggle_text()
+	_translate()
 
-func _update_language_toggle_text() -> void:
-	var btn = find_child("LanguageToggle", true, false)
-	if btn and btn is OptionButton:
-		var override_lang = config.language_override if config else "auto"
-		match override_lang:
-			"auto", "":
-				btn.select(0)
-			"en":
-				btn.select(1)
-			"zh_CN", "zh":
-				btn.select(2)
-			"ja":
-				btn.select(3)
-			"ko":
-				btn.select(4)
-			"es":
-				btn.select(5)
-			"pt", "pt_BR", "pt_PT":
-				btn.select(6)
-			"ru":
-				btn.select(7)
-			_:
-				btn.select(0)
+## Reflects the active viewport tool on the tool buttons.
+func set_active_tool(tool_id: StringName) -> void:
+	for btn: Button in _tool_buttons:
+		btn.set_pressed_no_signal(btn.get_meta("tool_id") == tool_id)
 
-func _sync_preset_buttons() -> void:
-	if not config:
+func _queue_sync() -> void:
+	if _sync_queued:
 		return
-	var preset = config.material_preset
-	var btn_light: Button = find_child("PresetLight", true, false) as Button
-	var btn_dark: Button = find_child("PresetDark", true, false) as Button
-	var btn_orange: Button = find_child("PresetOrange", true, false) as Button
-	var btn_none: Button = find_child("PresetNone", true, false) as Button
-	var btn_picker: Button = find_child("MaterialPicker", true, false) as Button
+	_sync_queued = true
+	_sync.call_deferred()
 
-	if btn_light: btn_light.button_pressed = (preset == CsgBlockoutConfig.MaterialPreset.GRID_LIGHT)
-	if btn_dark: btn_dark.button_pressed = (preset == CsgBlockoutConfig.MaterialPreset.GRID_DARK)
-	if btn_orange: btn_orange.button_pressed = (preset == CsgBlockoutConfig.MaterialPreset.GRID_ORANGE)
-	if btn_none: btn_none.button_pressed = (preset == CsgBlockoutConfig.MaterialPreset.NONE)
-	if btn_picker: btn_picker.button_pressed = (preset == CsgBlockoutConfig.MaterialPreset.CUSTOM)
-
-func _setup_button_animations(node: Node) -> void:
-	if node is Button and not (node is OptionButton):
-		call_deferred("_apply_pivot", node)
-		if not node.resized.is_connected(_apply_pivot.bind(node)):
-			node.resized.connect(_apply_pivot.bind(node))
-		node.mouse_entered.connect(_on_btn_mouse_entered.bind(node))
-		node.mouse_exited.connect(_on_btn_mouse_exited.bind(node))
-		node.button_down.connect(_on_btn_down.bind(node))
-		node.button_up.connect(_on_btn_up.bind(node))
-		if node.toggle_mode:
-			node.toggled.connect(_on_btn_toggled.bind(node))
-			
-	for child in node.get_children():
-		_setup_button_animations(child)
-
-func _apply_pivot(btn: Button) -> void:
-	btn.pivot_offset = btn.size / 2.0
-
-func _animate_button(btn: Button, target_scale: Vector2, target_modulate: Color, duration: float, is_punch: bool = false) -> void:
-	if button_tweens.has(btn) and is_instance_valid(button_tweens[btn]):
-		button_tweens[btn].kill()
-	var tw = create_tween()
-	if not is_punch:
-		tw.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	else:
-		tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.set_parallel(true)
-	tw.tween_property(btn, "scale", target_scale, duration)
-	tw.tween_property(btn, "modulate", target_modulate, duration)
-	button_tweens[btn] = tw
-
-func _on_btn_mouse_entered(btn: Button) -> void:
-	var color = Color(1.3, 1.3, 1.3, 1.0) if not btn.button_pressed else Color(1.3, 1.5, 2.0, 1.0)
-	_animate_button(btn, Vector2(1.08, 1.08), color, 0.2)
-
-func _on_btn_mouse_exited(btn: Button) -> void:
-	var color = Color.WHITE if not btn.button_pressed else Color(0.8, 1.2, 2.0, 1.0)
-	_animate_button(btn, Vector2(1.0, 1.0), color, 0.2)
-
-func _on_btn_down(btn: Button) -> void:
-	_animate_button(btn, Vector2(0.9, 0.9), btn.modulate, 0.1, true)
-
-func _on_btn_up(btn: Button) -> void:
-	var is_hovered = btn.get_global_rect().has_point(get_global_mouse_position())
-	var scale = Vector2(1.08, 1.08) if is_hovered else Vector2(1.0, 1.0)
-	var mod = Color(1.3, 1.3, 1.3, 1.0) if is_hovered else Color.WHITE
-	if btn.toggle_mode and btn.button_pressed:
-		mod = Color(1.3, 1.5, 2.0, 1.0) if is_hovered else Color(0.8, 1.2, 2.0, 1.0)
-	_animate_button(btn, scale, mod, 0.2)
-
-func _on_btn_toggled(pressed: bool, btn: Button) -> void:
-	var is_hovered = btn.get_global_rect().has_point(get_global_mouse_position())
-	var scale = Vector2(1.08, 1.08) if is_hovered else Vector2(1.0, 1.0)
-	var mod = Color(1.3, 1.3, 1.3, 1.0) if is_hovered else Color.WHITE
-	if pressed:
-		mod = Color(1.3, 1.5, 2.0, 1.0) if is_hovered else Color(0.8, 1.2, 2.0, 1.0)
-	_animate_button(btn, scale, mod, 0.2)
-
-func _on_box_pressed() -> void:
-	create_csg(CSGBox3D)
-
-func _on_cylinder_pressed() -> void:
-	create_csg(CSGCylinder3D)
-
-func _on_mesh_pressed() -> void:
-	create_csg(CSGMesh3D)
-
-func _on_polygon_pressed() -> void:
-	create_csg(CSGPolygon3D)
-
-func _on_sphere_pressed() -> void:
-	create_csg(CSGSphere3D)
-
-func _on_torus_pressed() -> void:
-	create_csg(CSGTorus3D)
-
-func _on_stairs_pressed() -> void:
-	stairs_requested.emit()
-	if request_create_node.get_connections().size() > 0:
-		request_create_node.emit("CSGStairs3D")
-	else:
-		create_csg(CSGStairs3D)
-
-func _on_ruler_pressed() -> void:
-	ruler_requested.emit()
-	request_create_node.emit("CSGRuler3D")
-
-func _on_operation_pressed(val := 0) -> void:
-	set_operation(val)
-
-func set_operation(val: int) -> void:
-	if not config:
+func _sync() -> void:
+	_sync_queued = false
+	if not is_inside_tree():
 		return
-	match val:
-		0: config.default_operation = CSGShape3D.OPERATION_UNION
-		1: config.default_operation = CSGShape3D.OPERATION_INTERSECTION
-		2: config.default_operation = CSGShape3D.OPERATION_SUBTRACTION
-		_: config.default_operation = CSGShape3D.OPERATION_UNION
+	_sync_operations()
+	_sync_materials()
 
-func _sync_operation_buttons() -> void:
-	var op: CSGShape3D.Operation = config.default_operation if config else CSGShape3D.OPERATION_UNION
-	var btn_union: Button = find_child("Union", true, false) as Button
-	var btn_intersection: Button = find_child("Intersection", true, false) as Button
-	var btn_subtraction: Button = find_child("Subtraction", true, false) as Button
-	if btn_union: btn_union.button_pressed = (op == CSGShape3D.OPERATION_UNION)
-	if btn_intersection: btn_intersection.button_pressed = (op == CSGShape3D.OPERATION_INTERSECTION)
-	if btn_subtraction: btn_subtraction.button_pressed = (op == CSGShape3D.OPERATION_SUBTRACTION)
+## Operation buttons act on the selected CSG shapes: dimmed without any, and the
+## operation they all share shows as pressed.
+func _sync_operations() -> void:
+	var ops: Dictionary = {}
+	for n: Node in EditorInterface.get_selection().get_selected_nodes():
+		if n is CSGShape3D:
+			ops[(n as CSGShape3D).operation] = true
+	var reason: String = CsgBlockoutI18n.t("REASON_SELECT_CSG")
+	for btn: Button in _op_buttons:
+		btn.disabled = ops.is_empty()
+		btn.set_pressed_no_signal(ops.size() == 1 and ops.has(btn.get_meta("operation")))
+		var tip: String = CsgBlockoutI18n.t(btn.get_meta("tooltip_key"))
+		btn.tooltip_text = tip if not ops.is_empty() else "%s\n(%s)" % [tip, reason]
+	if _apply != null:
+		_apply.disabled = ops.is_empty()
 
-# Material Preset Handlers
-func _on_preset_light_pressed() -> void:
+func _sync_materials() -> void:
+	var preset: int = config.material_preset if config else CsgBlockoutConfig.MaterialPreset.GRID_LIGHT
+	for key: int in _material_buttons:
+		(_material_buttons[key] as Button).set_pressed_no_signal(key == preset)
+	if _picker != null:
+		_picker.set_pressed_no_signal(preset == CsgBlockoutConfig.MaterialPreset.CUSTOM)
+
+func _set_preset(preset: CsgBlockoutConfig.MaterialPreset) -> void:
 	if config:
-		config.material_preset = CsgBlockoutConfig.MaterialPreset.GRID_LIGHT
+		config.material_preset = preset
 		config.save_config()
-	_sync_preset_buttons()
+	_sync_materials()
 
-func _on_preset_dark_pressed() -> void:
-	if config:
-		config.material_preset = CsgBlockoutConfig.MaterialPreset.GRID_DARK
-		config.save_config()
-	_sync_preset_buttons()
-
-func _on_preset_orange_pressed() -> void:
-	if config:
-		config.material_preset = CsgBlockoutConfig.MaterialPreset.GRID_ORANGE
-		config.save_config()
-	_sync_preset_buttons()
-
-func _on_preset_none_pressed() -> void:
-	if config:
-		config.material_preset = CsgBlockoutConfig.MaterialPreset.NONE
-		config.save_config()
-	_sync_preset_buttons()
-
-func _on_material_picker_pressed() -> void:
-	_request_material()
-
-func _on_apply_to_selected_pressed() -> void:
-	var selection = EditorInterface.get_selection()
-	if not selection:
+func _apply_to_selected() -> void:
+	var nodes: Array[Node] = []
+	for n: Node in EditorInterface.get_selection().get_selected_nodes():
+		if n is CSGShape3D:
+			nodes.append(n)
+	if nodes.is_empty():
+		CsgBlockoutStatus.show(CsgBlockoutI18n.t("REASON_SELECT_CSG"), true)
 		return
-	var selected_nodes = selection.get_selected_nodes().filter(func(n): return n is CSGShape3D)
-	if selected_nodes.is_empty():
-		push_warning(CsgBlockoutI18n.t("WARN_SELECT_CSG_SHAPE"))
-		return
-	
-	var active_mat: Material = config.get_active_material() if config else null
-	if CsgBlockout.undo_manager:
-		CsgBlockout.undo_manager.create_action(CsgBlockoutI18n.t("APPLY_MATERIAL"))
-		for node in selected_nodes:
-			CsgBlockout.undo_manager.add_do_property(node, "material", active_mat)
-			CsgBlockout.undo_manager.add_undo_property(node, "material", (node as CSGShape3D).material)
-		CsgBlockout.undo_manager.commit_action()
-	else:
-		for node in selected_nodes:
-			(node as CSGShape3D).material = active_mat
+	var material: Material = config.get_active_material() if config else null
+	var action: CsgBlockoutSceneOps.Action = CsgBlockoutSceneOps.Action.new(CsgBlockoutI18n.t("APPLY_MATERIAL"))
+	for n: Node in nodes:
+		action.set_property(n, &"material", material)
+	action.commit()
+	CsgBlockoutStatus.show(CsgBlockoutI18n.tf("STATUS_MATERIAL_APPLIED", [nodes.size()]))
 
 func _request_material() -> void:
-	var dialog := EditorFileDialog.new()
+	var dialog: EditorFileDialog = EditorFileDialog.new()
 	dialog.title = CsgBlockoutI18n.t("SELECT_MATERIAL")
 	dialog.display_mode = EditorFileDialog.DISPLAY_LIST
 	dialog.filters = ["*.tres, *.material, *.res"]
 	dialog.file_mode = EditorFileDialog.FILE_MODE_OPEN_FILE
-	if EditorInterface.get_base_control():
-		var ed_scale: float = EditorInterface.get_editor_scale() if Engine.is_editor_hint() else 1.0
-		dialog.popup_centered_clamped(Vector2(680, 480) * ed_scale)
-
-	var cleanup_dialog := func() -> void:
+	var cleanup: Callable = func() -> void:
 		if is_instance_valid(dialog) and dialog.get_parent():
 			dialog.get_parent().remove_child(dialog)
 			dialog.queue_free()
-
-	var on_file_selected := func(path: String) -> void:
-		cleanup_dialog.call()
-		if path.is_empty():
-			return
-		var res = ResourceLoader.load(path)
-		if res == null or not (res is Material):
-			return
-		if config:
+	dialog.file_selected.connect(func(path: String) -> void:
+		cleanup.call()
+		var res: Resource = ResourceLoader.load(path) if not path.is_empty() else null
+		if res is Material and config:
 			config.custom_material = res as Material
 			config.material_preset = CsgBlockoutConfig.MaterialPreset.CUSTOM
 			config.save_config()
-		_sync_preset_buttons()
-		var previewer = EditorInterface.get_resource_previewer()
-		if previewer:
-			previewer.queue_edited_resource_preview(res, self, "_update_picker_icon", null)
+			EditorInterface.get_resource_previewer().queue_edited_resource_preview(res, self, &"_update_picker_icon", null)
+		_sync_materials())
+	dialog.canceled.connect(func() -> void:
+		cleanup.call()
+		_sync_materials())
+	EditorInterface.get_base_control().add_child(dialog)
+	dialog.popup_centered_clamped(Vector2(680, 480) * _scale())
 
-	var on_canceled := func() -> void:
-		cleanup_dialog.call()
-		_sync_preset_buttons()
-
-	dialog.file_selected.connect(on_file_selected)
-	dialog.canceled.connect(on_canceled)
-
-	get_tree().root.add_child(dialog)
-	dialog.show()
-
-func _update_picker_icon(path: String, preview: Texture2D, thumbnail: Texture2D, userdata: Variant) -> void:
-	var btn_picker: Button = find_child("MaterialPicker", true, false) as Button
-	if preview and btn_picker:
-		btn_picker.icon = preview
-
-func create_csg(type: Variant) -> void:
-	var selection = EditorInterface.get_selection()
-	var selected_nodes = selection.get_selected_nodes()
-	if selected_nodes.is_empty() or !(selected_nodes[0] is CSGShape3D):
-		push_warning(CsgBlockoutI18n.t("WARN_SELECT_CSG_SHAPE"))
-		return
-	var selected_node: CSGShape3D = selected_nodes[0]
-	var csg: CSGShape3D
-	match type:
-		CSGBox3D: csg = CSGBox3D.new()
-		CSGCylinder3D: csg = CSGCylinder3D.new()
-		CSGSphere3D: csg = CSGSphere3D.new()
-		CSGMesh3D: csg = CSGMesh3D.new()
-		CSGPolygon3D: csg = CSGPolygon3D.new()
-		CSGTorus3D: csg = CSGTorus3D.new()
-		CSGStairs3D: csg = CSGStairs3D.new()
-		_:
-			push_warning(CsgBlockoutI18n.t("WARN_UNSUPPORTED_CSG_TYPE"))
-			return
-
-	csg.operation = config.default_operation if config else CSGShape3D.OPERATION_UNION
-	if config:
-		csg.material = config.get_active_material()
-
-	var owner_ref = EditorInterface.get_edited_scene_root()
-	if owner_ref == null:
-		owner_ref = selected_node.get_owner()
-	if owner_ref == null:
-		owner_ref = selected_node
-
-	var parent: Node = null
-	var insert_index: int = -1
-
-	if selected_node is CSGCombiner3D:
-		parent = selected_node
-		insert_index = parent.get_child_count()
-	else:
-		parent = selected_node.get_parent()
-		if parent == null:
-			parent = selected_node
-			insert_index = parent.get_child_count()
-		else:
-			insert_index = selected_node.get_index() + 1
-
-	if CsgBlockout.undo_manager:
-		CsgBlockout.undo_manager.create_action(CsgBlockoutI18n.tf("ADD_NODE", [csg.get_class()]))
-		CsgBlockout.undo_manager.add_undo_reference(csg)
-		CsgBlockout.undo_manager.add_do_method(self, "_undoable_add_csg", parent, csg, owner_ref, selected_node.global_position, insert_index)
-		CsgBlockout.undo_manager.add_do_method(self, "_select_created_csg", csg)
-		CsgBlockout.undo_manager.add_undo_method(self, "_undoable_remove_csg", parent, csg)
-		CsgBlockout.undo_manager.add_undo_method(self, "_clear_selection_if", csg)
-		CsgBlockout.undo_manager.commit_action()
-	else:
-		parent.add_child(csg, true)
-		if insert_index >= 0 and insert_index < parent.get_child_count():
-			parent.move_child(csg, insert_index)
-		csg.owner = owner_ref
-		csg.global_position = selected_node.global_position
-		call_deferred("_select_created_csg", csg)
-
-func _deferred_select(csg: Node) -> void:
-	call_deferred("_select_created_csg", csg)
-
-func _undoable_add_csg(parent: Node, csg: CSGShape3D, owner_ref: Node, global_pos: Vector3, insert_index: int) -> void:
-	if csg.get_parent() != parent:
-		parent.add_child(csg, true)
-		if insert_index >= 0 and insert_index < parent.get_child_count():
-			parent.move_child(csg, insert_index)
-	csg.owner = owner_ref
-	csg.global_position = global_pos
-
-func _undoable_remove_csg(parent: Node, csg: CSGShape3D) -> void:
-	if is_instance_valid(csg) and csg.get_parent() == parent:
-		parent.remove_child(csg)
-
-func _clear_selection_if(csg: Node) -> void:
-	var selection: EditorSelection = EditorInterface.get_selection()
-	if selection:
-		var nodes: Array[Node] = selection.get_selected_nodes()
-		if csg in nodes:
-			selection.remove_node(csg)
-
-func _select_created_csg(csg: Node) -> void:
-	if not is_instance_valid(csg) or not csg.is_inside_tree():
-		return
-	var selection: EditorSelection = EditorInterface.get_selection()
-	if selection:
-		selection.clear()
-		selection.add_node(csg)
-
-func _on_language_toggle_item_selected(index: int) -> void:
-	if config:
-		match index:
-			0: config.language_override = "auto"
-			1: config.language_override = "en"
-			2: config.language_override = "zh_CN"
-			3: config.language_override = "ja"
-			4: config.language_override = "ko"
-			5: config.language_override = "es"
-			6: config.language_override = "pt"
-			7: config.language_override = "ru"
-		config.save_config()
-		get_tree().call_group(&"csg_blockout_ui", &"update_language")
+func _update_picker_icon(_path: String, preview: Texture2D, _thumbnail: Texture2D, _userdata: Variant) -> void:
+	if preview != null and _picker != null:
+		_picker.icon = preview
